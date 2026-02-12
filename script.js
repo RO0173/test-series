@@ -1,62 +1,48 @@
 let questions = [];
 let currentQuestion = 0;
 
-const sheetURL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQvwixEYytjBhZvE1jQW-oiDW8m3u0f5H2E-0av0brpRO7oFM6LjCdy9CsRV2Nzjz-tA6pefwbN-va0/pub?output=csv";
+const url = "https://opensheet.elk.sh/2PACX-1vQvwixEYytjBhZvE1jQW-oiDW8m3u0f5H2E-0av0brpRO7oFM6LjCdy9CsRV2Nzjz-tA6pefwbN-va0/Sheet1";
 
-async function loadQuestions() {
-  const res = await fetch(sheetURL);
-  const text = await res.text();
+async function start() {
+  let r = await fetch(url);
+  let data = await r.json();
 
-  const rows = text.split("\n").slice(1);
+  questions = data;
 
-  questions = rows.map(row => {
-    const col = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
-
-    if (!col || col.length < 11) return null;
-
-    return {
-      question: col[5]?.replace(/"/g, ""),
-      options: [
-        col[6]?.replace(/"/g, ""),
-        col[7]?.replace(/"/g, ""),
-        col[8]?.replace(/"/g, ""),
-        col[9]?.replace(/"/g, "")
-      ],
-      answer: ["A","B","C","D"].indexOf(col[10]?.replace(/"/g, "").trim())
-    };
-  }).filter(q => q !== null);
-
-  showQuestion();
+  show();
 }
 
-function showQuestion() {
-  if (!questions.length) return;
+function show() {
+  if (questions.length == 0) return;
 
   document.getElementById("question").innerText =
     questions[currentQuestion].question;
 
-  const buttons = document.querySelectorAll("#quiz button");
+  let btns = document.querySelectorAll("#quiz button");
 
-  buttons.forEach((btn, i) => {
-    btn.innerText = questions[currentQuestion].options[i];
-  });
+  btns[0].innerText = questions[currentQuestion].optionA;
+  btns[1].innerText = questions[currentQuestion].optionB;
+  btns[2].innerText = questions[currentQuestion].optionC;
+  btns[3].innerText = questions[currentQuestion].optionD;
 }
 
-function checkAnswer(selected) {
-  const correct = questions[currentQuestion].answer;
+function checkAnswer(n) {
+  let ans = questions[currentQuestion].answer;
 
-  document.getElementById("result").innerText =
-    selected === correct ? "Correct ✅" : "Wrong ❌";
+  let correct = ["A","B","C","D"][n];
+
+  if (ans == correct)
+    document.getElementById("result").innerText = "Correct ✅";
+  else
+    document.getElementById("result").innerText = "Wrong ❌";
 
   currentQuestion++;
 
-  if (currentQuestion < questions.length) {
-    setTimeout(showQuestion, 800);
-  } else {
-    document.getElementById("question").innerText = "Test Completed 🎉";
-  }
+  if (currentQuestion < questions.length)
+    setTimeout(show, 700);
+  else
+    document.getElementById("question").innerText = "Test Finished 🎉";
 }
 
-loadQuestions();
+start();
 

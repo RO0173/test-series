@@ -2,39 +2,62 @@ let questions = [];
 let currentQuestion = 0;
 
 fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQvwixEYytjBhZvE1jQW-oiDW8m3u0f5H2E-0av0brpRO7oFM6LjCdy9CsRV2Nzjz-tA6pefwbN-va0/pub?output=csv")
-  .then(res => res.text())
-  .then(csv => {
-    const rows = csv.split("\n").slice(1); // skip header
+.then(response => response.text())
+.then(data => {
 
-    rows.forEach(row => {
-      const cols = row.split(",");
+  const rows = data.trim().split("\n");
 
-      if(cols.length >= 6){
-        questions.push({
-          question: cols[0],
-          options: [cols[1], cols[2], cols[3], cols[4]],
-          answer: cols[5].trim()
-        });
-      }
+  // remove header row
+  rows.shift();
+
+  rows.forEach(row => {
+
+    const cols = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+
+    if(!cols || cols.length < 6) return;
+
+    questions.push({
+      question: cols[0].replaceAll('"',''),
+      options: [
+        cols[1].replaceAll('"',''),
+        cols[2].replaceAll('"',''),
+        cols[3].replaceAll('"',''),
+        cols[4].replaceAll('"','')
+      ],
+      answer: cols[5].replaceAll('"','').trim().toUpperCase()
     });
 
-    loadQuestion();
   });
 
+  console.log("Loaded Questions:", questions);
+  loadQuestion();
+});
+
 function loadQuestion() {
+
+  if(questions.length === 0){
+    document.getElementById("question").innerText = "Loading questions...";
+    return;
+  }
+
   if(currentQuestion >= questions.length){
     document.getElementById("question").innerText = "Test Completed";
+    document.getElementById("result").innerText = "";
     return;
   }
 
   let q = questions[currentQuestion];
+
   document.getElementById("question").innerText = q.question;
 
   const buttons = document.querySelectorAll("#quiz button");
-  buttons.forEach((btn,i)=> btn.innerText = q.options[i]);
+  buttons.forEach((btn,i)=>{
+    btn.innerText = q.options[i];
+  });
 }
 
 function checkAnswer(i){
+
   let correct = questions[currentQuestion].answer;
   let selected = ["A","B","C","D"][i];
 
@@ -42,8 +65,9 @@ function checkAnswer(i){
     selected === correct ? "Correct ✅" : "Wrong ❌";
 
   currentQuestion++;
-  setTimeout(loadQuestion,1000);
+  setTimeout(loadQuestion, 1000);
 }
+
 
 
 

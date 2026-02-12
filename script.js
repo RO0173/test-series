@@ -7,8 +7,7 @@ async function start() {
   let r = await fetch(url);
   let data = await r.json();
 
-  questions = data;
-
+ questions = data.slice(1);
   show();
 }
 

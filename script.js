@@ -7,12 +7,21 @@ async function start() {
   let r = await fetch(url);
   let data = await r.json();
 
- questions = data.slice(1);
+  // find columns automatically
+  questions = data.map(row => ({
+    question: row.question || row.Question || row.ques || row.Ques,
+    optionA: row.optionA || row.OptionA || row["Option A"],
+    optionB: row.optionB || row.OptionB || row["Option B"],
+    optionC: row.optionC || row.OptionC || row["Option C"],
+    optionD: row.optionD || row.OptionD || row["Option D"],
+    answer: row.answer || row.Answer
+  })).filter(q => q.question);
+
   show();
 }
 
 function show() {
-  if (questions.length == 0) return;
+  if (!questions.length) return;
 
   document.getElementById("question").innerText =
     questions[currentQuestion].question;
@@ -27,21 +36,19 @@ function show() {
 
 function checkAnswer(n) {
   let ans = questions[currentQuestion].answer;
-
   let correct = ["A","B","C","D"][n];
 
-  if (ans == correct)
-    document.getElementById("result").innerText = "Correct ✅";
-  else
-    document.getElementById("result").innerText = "Wrong ❌";
+  document.getElementById("result").innerText =
+    ans == correct ? "Correct ✅" : "Wrong ❌";
 
   currentQuestion++;
 
   if (currentQuestion < questions.length)
-    setTimeout(show, 700);
+    setTimeout(show, 800);
   else
     document.getElementById("question").innerText = "Test Finished 🎉";
 }
 
 start();
+
 

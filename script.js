@@ -1,49 +1,62 @@
-const questions = [
-  {
-    question: "What is 2 + 2?",
-    options: ["1", "2", "3", "4"],
-    answer: 3
-  },
-  {
-    question: "Capital of India?",
-    options: ["Mumbai", "Delhi", "Chennai", "Kolkata"],
-    answer: 1
-  },
-  {
-    question: "Which is a programming language?",
-    options: ["HTML", "CSS", "Python", "Internet"],
-    answer: 2
-  }
-];
-
+let questions = [];
 let currentQuestion = 0;
-let score = 0;
 
-const questionEl = document.getElementById("question");
-const buttons = document.querySelectorAll("button");
-const resultEl = document.getElementById("result");
+const sheetURL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQvwixEYytjBhZvE1jQW-oiDW8m3u0f5H2E-0av0brpRO7oFM6LjCdy9CsRV2Nzjz-tA6pefwbN-va0/pub?output=csv";
 
-function loadQuestion() {
-  questionEl.innerText = questions[currentQuestion].question;
-  buttons.forEach((btn, index) => {
-    btn.innerText = questions[currentQuestion].options[index];
+async function loadQuestions() {
+  const res = await fetch(sheetURL);
+  const text = await res.text();
+
+  const rows = text.split("\n").slice(1);
+
+  questions = rows.map(row => {
+    const col = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+
+    if (!col || col.length < 11) return null;
+
+    return {
+      question: col[5]?.replace(/"/g, ""),
+      options: [
+        col[6]?.replace(/"/g, ""),
+        col[7]?.replace(/"/g, ""),
+        col[8]?.replace(/"/g, ""),
+        col[9]?.replace(/"/g, "")
+      ],
+      answer: ["A","B","C","D"].indexOf(col[10]?.replace(/"/g, "").trim())
+    };
+  }).filter(q => q !== null);
+
+  showQuestion();
+}
+
+function showQuestion() {
+  if (!questions.length) return;
+
+  document.getElementById("question").innerText =
+    questions[currentQuestion].question;
+
+  const buttons = document.querySelectorAll("#quiz button");
+
+  buttons.forEach((btn, i) => {
+    btn.innerText = questions[currentQuestion].options[i];
   });
 }
 
 function checkAnswer(selected) {
-  if (selected === questions[currentQuestion].answer) {
-    score++;
-  }
+  const correct = questions[currentQuestion].answer;
+
+  document.getElementById("result").innerText =
+    selected === correct ? "Correct ✅" : "Wrong ❌";
 
   currentQuestion++;
 
   if (currentQuestion < questions.length) {
-    loadQuestion();
+    setTimeout(showQuestion, 800);
   } else {
-    document.getElementById("quiz").innerHTML =
-      `<h2>Test Completed 🎉</h2>
-       <p>Your Score: ${score} / ${questions.length}</p>`;
+    document.getElementById("question").innerText = "Test Completed 🎉";
   }
 }
 
-loadQuestion();
+loadQuestions();
+

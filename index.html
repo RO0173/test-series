@@ -18,12 +18,19 @@ let questions = [
     options: ["1", "2", "3", "4"],
     answer: "4",
     explanation: "2 + 2 = 4"
+  },
+  {
+    question: "5 × 3 = ?",
+    options: ["10", "15", "20", "25"],
+    answer: "15",
+    explanation: "5 × 3 = 15"
   }
 ];
 
 let currentIndex = 0;
 let score = 0;
 let answered = false;
+let userAnswers = [];
 
 function loadQuestion() {
   let q = questions[currentIndex];
@@ -44,6 +51,8 @@ function checkAnswer(selected) {
   if (answered) return;
 
   answered = true;
+
+  userAnswers[currentIndex] = selected;
 
   let correct = questions[currentIndex].answer;
 
@@ -66,8 +75,24 @@ function nextQuestion() {
   if (currentIndex < questions.length) {
     loadQuestion();
   } else {
-    document.body.innerHTML = `<h2>Your Score: ${score}</h2>`;
+    showResult();
   }
+}
+
+function showResult() {
+  let resultHTML = `<h2>Your Score: ${score}</h2>`;
+
+  questions.forEach((q, index) => {
+    resultHTML += `
+      <p><b>Q${index+1}: ${q.question}</b></p>
+      <p>Your Answer: ${userAnswers[index]}</p>
+      <p>Correct Answer: ${q.answer}</p>
+      <p>Explanation: ${q.explanation}</p>
+      <hr>
+    `;
+  });
+
+  document.body.innerHTML = resultHTML;
 }
 
 loadQuestion();

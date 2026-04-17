@@ -106,12 +106,11 @@ function checkAnswer(selected) {
 
   if (selected === correct) {
     score++;
-    loadQuestion();
-  }
+    }
 
   document.getElementById("explanation").innerText =
     "Explanation: " + questions[currentIndex].explanation;
-
+ loadQuestion();
   loadPalette(); // update palette color
 }
 

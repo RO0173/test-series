@@ -1,3 +1,4 @@
+<div id="testList"></div>
 <!DOCTYPE html>
 <html>
 <body>
@@ -14,20 +15,60 @@
 <button onclick="nextQuestion()">Next</button>
 
 <script>
-let questions = [
+let tests = [
   {
-    question: "2 + 2 = ?",
-    options: ["1", "2", "3", "4"],
-    answer: "4",
-    explanation: "2 + 2 = 4"
+    name: "Math Test",
+    questions: [
+      {
+        question: "2 + 2 = ?",
+        options: ["1", "2", "3", "4"],
+        answer: "4",
+        explanation: "2 + 2 = 4"
+      }
+    ]
   },
   {
-    question: "5 × 3 = ?",
-    options: ["10", "15", "20", "25"],
-    answer: "15",
-    explanation: "5 × 3 = 15"
+    name: "Reasoning Test",
+    questions: [
+      {
+        question: "Find next: 2, 4, 6, ?",
+        options: ["7", "8", "9", "10"],
+        answer: "8",
+        explanation: "Pattern +2"
+      }
+    ]
   }
 ];
+  function showTests() {
+  let html = "<h2>Select a Test</h2>";
+
+  tests.forEach((test, index) => {
+    html += `<button onclick="startTest(${index})">${test.name}</button><br><br>`;
+  });
+
+  document.body.innerHTML = html;
+}
+  let questions = [];
+
+function startTest(index) {
+  questions = tests[index].questions;
+
+  currentIndex = 0;
+  score = 0;
+  userAnswers = [];
+  timeLeft = 30;
+
+  document.body.innerHTML = `
+    <h3>Time Left: <span id="timer">30</span> seconds</h3>
+    <h2 id="question"></h2>
+    <div id="options"></div>
+    <p id="explanation"></p>
+    <br>
+    <button onclick="nextQuestion()">Next</button>
+  `;
+
+  showTests();
+}
 
 let currentIndex = 0;
 let score = 0;

@@ -57,6 +57,7 @@ function startTest(index) {
 
   document.body.innerHTML = `
     <h3>Time Left: <span id="timer">30</span> seconds</h3>
+    <div id="palette"></div>
     <h2 id="question"></h2>
     <div id="options"></div>
     <p id="explanation"></p>
@@ -115,6 +116,27 @@ function nextQuestion() {
     alert("Please select an answer first!");
     return;
   }
+  function loadPalette()
+  function goToQuestion(index) {
+  currentIndex = index;
+  loadQuestion();
+    loadPalette();
+}
+  {
+  let html = "<h3>Questions:</h3>";
+
+  questions.forEach((q, index) => {
+    let color = userAnswers[index] ? "lightgreen" : "lightgray";
+
+    html += `<button 
+      style="background-color:${color}; margin:2px;"
+      onclick="goToQuestion(${index})">
+      ${index + 1}
+    </button>`;
+  });
+
+  document.getElementById("palette").innerHTML = html;
+}
 
   currentIndex++;
 

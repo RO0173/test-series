@@ -6,6 +6,8 @@
 
 <div id="options"></div>
 
+<p id="explanation"></p>
+
 <br>
 <button onclick="nextQuestion()">Next</button>
 
@@ -14,22 +16,27 @@ let questions = [
   {
     question: "2 + 2 = ?",
     options: ["1", "2", "3", "4"],
-    answer: "4"
+    answer: "4",
+    explanation: "2 + 2 = 4"
   },
   {
     question: "5 × 3 = ?",
     options: ["10", "15", "20", "25"],
-    answer: "15"
+    answer: "15",
+    explanation: "5 multiplied by 3 is 15"
   }
 ];
 
 let currentIndex = 0;
 let score = 0;
+let answered = false;
 
 function loadQuestion() {
   let q = questions[currentIndex];
   
   document.getElementById("question").innerText = q.question;
+  document.getElementById("explanation").innerText = "";
+  answered = false;
 
   let optionsHtml = "";
   q.options.forEach(opt => {
@@ -40,12 +47,29 @@ function loadQuestion() {
 }
 
 function checkAnswer(selected) {
-  if (selected === questions[currentIndex].answer) {
+  if (answered) return; // prevent multiple clicks
+
+  answered = true;
+
+  let correct = questions[currentIndex].answer;
+
+  if (selected === correct) {
     score++;
+    alert("Correct");
+  } else {
+    alert("Wrong");
   }
+
+  document.getElementById("explanation").innerText =
+    "Explanation: " + questions[currentIndex].explanation;
 }
 
 function nextQuestion() {
+  if (!answered) {
+    alert("Please select an answer first!");
+    return;
+  }
+
   currentIndex++;
 
   if (currentIndex < questions.length) {
@@ -55,7 +79,6 @@ function nextQuestion() {
   }
 }
 
-// start first question
 loadQuestion();
 </script>
 

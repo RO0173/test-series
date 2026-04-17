@@ -33,7 +33,9 @@ let currentIndex = 0;
 let score = 0;
 let answered = false;
 let userAnswers = [];
-
+  
+let timeLeft = 30;
+  
 function loadQuestion() {
   let q = questions[currentIndex];
   
@@ -96,8 +98,20 @@ function showResult() {
 
   document.body.innerHTML = resultHTML;
 }
+function startTimer() {
+  let timerInterval = setInterval(() => {
+    timeLeft--;
+    document.getElementById("timer").innerText = timeLeft;
 
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      alert("Time's up!");
+      showResult();
+    }
+  }, 1000);
+}
 loadQuestion();
+startTimer();
 </script>
 
 </body>

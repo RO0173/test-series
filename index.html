@@ -96,7 +96,7 @@ function loadQuestion() {
 
 // ✅ Check answer
 function checkAnswer(selected) {
-  if (answered) return;
+ if (answered && userAnswers[currentIndex]) return;
 
   answered = true;
 
@@ -106,6 +106,7 @@ function checkAnswer(selected) {
 
   if (selected === correct) {
     score++;
+    loadQuestion();
   }
 
   document.getElementById("explanation").innerText =

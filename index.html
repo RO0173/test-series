@@ -62,8 +62,8 @@ function startTest(index) {
     <div id="options"></div>
     <p id="explanation"></p>
     <br>
-   <button onclick="prevQuestion()">Previous</button>
-<button onclick="nextQuestion()">Next</button>
+    <button onclick="prevQuestion()">Previous</button>
+    <button onclick="nextQuestion()">Next</button>
   `;
 
   loadQuestion();
@@ -79,17 +79,19 @@ function loadQuestion() {
   answered = false;
 
   let optionsHtml = "";
-  q.options.forEach(opt => {
-    let selected = userAnswers[currentIndex];
+  let selected = userAnswers[currentIndex];
 
-if (selected === opt) {
-  optionsHtml += `<button style="background-color: lightgreen" onclick="checkAnswer('${opt}')">${opt}</button><br>`;
-} else {
-  optionsHtml += `<button onclick="checkAnswer('${opt}')">${opt}</button><br>`;
-}
+  q.options.forEach(opt => {
+    if (selected === opt) {
+      optionsHtml += `<button style="background-color: lightgreen" onclick="checkAnswer('${opt}')">${opt}</button><br>`;
+    } else {
+      optionsHtml += `<button onclick="checkAnswer('${opt}')">${opt}</button><br>`;
+    }
   });
 
   document.getElementById("options").innerHTML = optionsHtml;
+
+  loadPalette(); // ✅ IMPORTANT
 }
 
 // ✅ Check answer
@@ -108,6 +110,8 @@ function checkAnswer(selected) {
 
   document.getElementById("explanation").innerText =
     "Explanation: " + questions[currentIndex].explanation;
+
+  loadPalette(); // update palette color
 }
 
 // ✅ Next question
@@ -116,13 +120,26 @@ function nextQuestion() {
     alert("Please select an answer first!");
     return;
   }
-  function loadPalette()
-  function goToQuestion(index) {
-  currentIndex = index;
-  loadQuestion();
-    loadPalette();
+
+  currentIndex++;
+
+  if (currentIndex < questions.length) {
+    loadQuestion();
+  } else {
+    showResult();
+  }
 }
-  {
+
+// ✅ Previous question
+function prevQuestion() {
+  if (currentIndex > 0) {
+    currentIndex--;
+    loadQuestion();
+  }
+}
+
+// ✅ Question palette
+function loadPalette() {
   let html = "<h3>Questions:</h3>";
 
   questions.forEach((q, index) => {
@@ -138,19 +155,10 @@ function nextQuestion() {
   document.getElementById("palette").innerHTML = html;
 }
 
-  currentIndex++;
-
-  if (currentIndex < questions.length) {
-    loadQuestion();
-  } else {
-    showResult();
-  }
-}
-  function prevQuestion() {
-  if (currentIndex > 0) {
-    currentIndex--;
-    loadQuestion();
-  }
+// ✅ Jump to question
+function goToQuestion(index) {
+  currentIndex = index;
+  loadQuestion();
 }
 
 // ✅ Show result
@@ -187,11 +195,6 @@ function startTimer() {
 // ✅ Start app
 showTests();
 
-</script>
-
-</body>
-</html>
-startTimer();
 </script>
 
 </body>

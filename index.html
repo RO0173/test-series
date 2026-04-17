@@ -18,12 +18,6 @@ let questions = [
     options: ["1", "2", "3", "4"],
     answer: "4",
     explanation: "2 + 2 = 4"
-  },
-  {
-    question: "5 × 3 = ?",
-    options: ["10", "15", "20", "25"],
-    answer: "15",
-    explanation: "5 multiplied by 3 is 15"
   }
 ];
 
@@ -47,7 +41,7 @@ function loadQuestion() {
 }
 
 function checkAnswer(selected) {
-  if (answered) return; // prevent multiple clicks
+  if (answered) return;
 
   answered = true;
 
@@ -55,9 +49,6 @@ function checkAnswer(selected) {
 
   if (selected === correct) {
     score++;
-    alert("Correct");
-  } else {
-    alert("Wrong");
   }
 
   document.getElementById("explanation").innerText =

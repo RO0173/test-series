@@ -2,19 +2,61 @@
 <html>
 <body>
 
-<h1 id="question"></h1>
-<button onclick="checkAnswer('4')">4</button>
+<h2 id="question"></h2>
+
+<div id="options"></div>
+
+<br>
+<button onclick="nextQuestion()">Next</button>
 
 <script>
-document.getElementById("question").innerText = "2 + 2 = ?";
+let questions = [
+  {
+    question: "2 + 2 = ?",
+    options: ["1", "2", "3", "4"],
+    answer: "4"
+  },
+  {
+    question: "5 × 3 = ?",
+    options: ["10", "15", "20", "25"],
+    answer: "15"
+  }
+];
 
-function checkAnswer(ans) {
-  if(ans === "4") {
-    alert("Correct");
-  } else {
-    alert("Wrong");
+let currentIndex = 0;
+let score = 0;
+
+function loadQuestion() {
+  let q = questions[currentIndex];
+  
+  document.getElementById("question").innerText = q.question;
+
+  let optionsHtml = "";
+  q.options.forEach(opt => {
+    optionsHtml += `<button onclick="checkAnswer('${opt}')">${opt}</button><br>`;
+  });
+
+  document.getElementById("options").innerHTML = optionsHtml;
+}
+
+function checkAnswer(selected) {
+  if (selected === questions[currentIndex].answer) {
+    score++;
   }
 }
+
+function nextQuestion() {
+  currentIndex++;
+
+  if (currentIndex < questions.length) {
+    loadQuestion();
+  } else {
+    document.body.innerHTML = `<h2>Your Score: ${score}</h2>`;
+  }
+}
+
+// start first question
+loadQuestion();
 </script>
 
 </body>

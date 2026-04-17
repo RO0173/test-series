@@ -61,7 +61,8 @@ function startTest(index) {
     <div id="options"></div>
     <p id="explanation"></p>
     <br>
-    <button onclick="nextQuestion()">Next</button>
+   <button onclick="prevQuestion()">Previous</button>
+<button onclick="nextQuestion()">Next</button>
   `;
 
   loadQuestion();
@@ -78,7 +79,13 @@ function loadQuestion() {
 
   let optionsHtml = "";
   q.options.forEach(opt => {
-    optionsHtml += `<button onclick="checkAnswer('${opt}')">${opt}</button><br>`;
+    let selected = userAnswers[currentIndex];
+
+if (selected === opt) {
+  optionsHtml += `<button style="background-color: lightgreen" onclick="checkAnswer('${opt}')">${opt}</button><br>`;
+} else {
+  optionsHtml += `<button onclick="checkAnswer('${opt}')">${opt}</button><br>`;
+}
   });
 
   document.getElementById("options").innerHTML = optionsHtml;
@@ -115,6 +122,12 @@ function nextQuestion() {
     loadQuestion();
   } else {
     showResult();
+  }
+}
+  function prevQuestion() {
+  if (currentIndex > 0) {
+    currentIndex--;
+    loadQuestion();
   }
 }
 

@@ -96,7 +96,7 @@ function loadQuestion() {
 
 // ✅ Check answer
 function checkAnswer(selected) {
- if (answered && userAnswers[currentIndex]) return;
+  if (answered) return;
 
   answered = true;
 
@@ -106,14 +106,22 @@ function checkAnswer(selected) {
 
   if (selected === correct) {
     score++;
+  }
+
+  // highlight selected button
+  let buttons = document.querySelectorAll("#options button");
+
+  buttons.forEach(btn => {
+    if (btn.innerText === selected) {
+      btn.style.backgroundColor = "lightgreen";
     }
+  });
 
   document.getElementById("explanation").innerText =
     "Explanation: " + questions[currentIndex].explanation;
 
-  loadPalette(); // update palette color
+  loadPalette();
 }
-
 // ✅ Next question
 function nextQuestion() {
   if (!answered) {

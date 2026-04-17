@@ -1,18 +1,6 @@
-<div id="testList"></div>
 <!DOCTYPE html>
 <html>
 <body>
-
-<h3>Time Left: <span id="timer">30</span> seconds</h3>
-  
-<h2 id="question"></h2>
-
-<div id="options"></div>
-
-<p id="explanation"></p>
-
-<br>
-<button onclick="nextQuestion()">Next</button>
 
 <script>
 let tests = [
@@ -39,7 +27,16 @@ let tests = [
     ]
   }
 ];
-  function showTests() {
+
+let questions = [];
+let currentIndex = 0;
+let score = 0;
+let answered = false;
+let userAnswers = [];
+let timeLeft = 30;
+
+// ✅ Show test list
+function showTests() {
   let html = "<h2>Select a Test</h2>";
 
   tests.forEach((test, index) => {
@@ -48,8 +45,8 @@ let tests = [
 
   document.body.innerHTML = html;
 }
-  let questions = [];
 
+// ✅ Start selected test
 function startTest(index) {
   questions = tests[index].questions;
 
@@ -67,16 +64,11 @@ function startTest(index) {
     <button onclick="nextQuestion()">Next</button>
   `;
 
-  showTests();
+  loadQuestion();
+  startTimer();
 }
 
-let currentIndex = 0;
-let score = 0;
-let answered = false;
-let userAnswers = [];
-  
-let timeLeft = 30;
-  
+// ✅ Load question
 function loadQuestion() {
   let q = questions[currentIndex];
   
@@ -92,6 +84,7 @@ function loadQuestion() {
   document.getElementById("options").innerHTML = optionsHtml;
 }
 
+// ✅ Check answer
 function checkAnswer(selected) {
   if (answered) return;
 
@@ -109,6 +102,7 @@ function checkAnswer(selected) {
     "Explanation: " + questions[currentIndex].explanation;
 }
 
+// ✅ Next question
 function nextQuestion() {
   if (!answered) {
     alert("Please select an answer first!");
@@ -124,6 +118,7 @@ function nextQuestion() {
   }
 }
 
+// ✅ Show result
 function showResult() {
   let resultHTML = `<h2>Your Score: ${score}</h2>`;
 
@@ -139,6 +134,8 @@ function showResult() {
 
   document.body.innerHTML = resultHTML;
 }
+
+// ✅ Timer
 function startTimer() {
   let timerInterval = setInterval(() => {
     timeLeft--;
@@ -151,7 +148,14 @@ function startTimer() {
     }
   }, 1000);
 }
-loadQuestion();
+
+// ✅ Start app
+showTests();
+
+</script>
+
+</body>
+</html>
 startTimer();
 </script>
 

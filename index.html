@@ -33,6 +33,7 @@ img{max-width:100%;margin:10px 0;}
 
 <script type="module">
 
+// ===== FIREBASE =====
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { 
   getFirestore, collection, getDocs, addDoc,
@@ -42,27 +43,29 @@ import {
   getAuth, signInWithEmailAndPassword,
   onAuthStateChanged, signOut 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } 
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-// 🔑 CONFIG
 const firebaseConfig = {
-  apiKey: "AIzaSyDkiFtI0-t4jDWIWhp5gtrFCHSe84CXCHk",
-  authDomain: "ro-test-series.firebaseapp.com",
-  projectId: "ro-test-series",
-  storageBucket: "ro-test-series.firebasestorage.app",
-  messagingSenderId: "58879445454",
-  appId: "1:58879445454:web:df7d825eab569e3e40c39f"
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_BUCKET",
+  messagingSenderId: "XXX",
+  appId: "XXX"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+const storage = getStorage(app);
 
 let currentUser=null;
 onAuthStateChanged(auth,u=>currentUser=u);
 
-// ===== DATA =====
+// ===== GLOBAL =====
 let topics=[],questions=[],currentIndex=0,userAnswers=[],visited=[];
-let editId=null;
+let editId=null, editTheoryId=null;
 
 // ===== LOAD DATA =====
 async function loadData(){
@@ -72,14 +75,11 @@ async function loadData(){
  let map={};
 
  qSnap.forEach(d=>{
-  let q=d.data();
-  q.id=d.id;
+  let q=d.data(); q.id=d.id;
 
   if(!map[q.topic]) map[q.topic]={name:q.topic,tests:{},theory:""};
-
-  if(!map[q.topic].tests[q.test]){
+  if(!map[q.topic].tests[q.test])
     map[q.topic].tests[q.test]={name:q.test,questions:[]};
-  }
 
   map[q.topic].tests[q.test].questions.push(q);
  });
@@ -169,10 +169,8 @@ function loadQ(){
  let q=questions[currentIndex];
 
  document.getElementById("q").innerText=q.question;
-
- // image
  document.getElementById("img").innerHTML=
-   q.image ? `<img src="${q.image}">` : "";
+  q.image?`<img src="${q.image}">`:"";
 
  let html="";
  q.options.forEach(o=>{
@@ -195,7 +193,6 @@ function loadPalette(){
   let c="not-visited";
   if(visited[i]&&!userAnswers[i]) c="not-answered";
   if(userAnswers[i]) c="answered";
-
   html+=`<button class="palette-btn ${c}" onclick="go(${i})">${i+1}</button>`;
  });
  document.getElementById("palette").innerHTML=html;
@@ -234,7 +231,7 @@ function showLogin(){
 window.login=function(){
  signInWithEmailAndPassword(auth,email.value,pass.value)
  .then(()=>openAdmin())
- .catch(()=>alert("error"));
+ .catch(()=>alert("Login error"));
 };
 
 window.logout=()=>{signOut(auth);showTopics();};
@@ -243,46 +240,70 @@ window.logout=()=>{signOut(auth);showTopics();};
 window.openAdmin=function(){
  if(!currentUser){showLogin();return;}
 
- if(currentUser.email!=="hks.sn94@gmail.com"){
+ if(currentUser.email!=="YOUR_EMAIL@gmail.com"){
   alert("Access denied");return;
  }
 
  document.getElementById("app").innerHTML=`
- <h2>Admin</h2>
+ <h2>Admin Panel</h2>
 
+ <!-- QUESTION -->
  <div class="card">
  <h3>Add/Edit Question</h3>
  <input id="topic" placeholder="Topic"><br><br>
  <input id="test" placeholder="Test"><br><br>
  <input id="question" placeholder="Question"><br><br>
- <input id="image" placeholder="Image URL"><br><br>
+ <input type="file" id="imageFile"><br><br>
 
- <input id="opt1" placeholder="Opt1"><br><br>
- <input id="opt2" placeholder="Opt2"><br><br>
- <input id="opt3" placeholder="Opt3"><br><br>
- <input id="opt4" placeholder="Opt4"><br><br>
+ <input id="opt1"><br><br>
+ <input id="opt2"><br><br>
+ <input id="opt3"><br><br>
+ <input id="opt4"><br><br>
 
- <input id="answer" placeholder="Answer"><br><br>
- <input id="explanation" placeholder="Explanation"><br><br>
+ <input id="answer"><br><br>
+ <input id="explanation"><br><br>
 
- <button onclick="saveQ()">Save</button>
+ <button onclick="saveQ()">Save Question</button>
  </div>
 
- <div id="list"></div>
+ <div id="qList"></div>
+
+ <!-- THEORY -->
+ <div class="card">
+ <h3>Add/Edit Theory</h3>
+ <input id="tTopic"><br><br>
+ <textarea id="tContent"></textarea><br><br>
+ <button onclick="saveTheory()">Save Theory</button>
+ </div>
+
+ <div id="tList"></div>
 
  <button onclick="loadData()">Back</button>
  `;
 
- loadAdmin();
+ loadAdminQ();
+ loadAdminTheory();
 };
 
-// ===== SAVE =====
+// ===== IMAGE UPLOAD =====
+async function uploadImage(file){
+ let r=ref(storage,'q/'+Date.now()+file.name);
+ await uploadBytes(r,file);
+ return await getDownloadURL(r);
+}
+
+// ===== SAVE QUESTION =====
 window.saveQ=async function(){
+ let file=imageFile.files[0];
+ let imgUrl="";
+
+ if(file) imgUrl=await uploadImage(file);
+
  let data={
   topic:topic.value,
   test:test.value,
   question:question.value,
-  image:image.value,
+  image:imgUrl,
   options:[opt1.value,opt2.value,opt3.value,opt4.value],
   answer:answer.value,
   explanation:explanation.value
@@ -295,59 +316,97 @@ window.saveQ=async function(){
   await addDoc(collection(db,"questions"),data);
  }
 
- alert("Saved");
  openAdmin();
 };
 
-// ===== LOAD ADMIN LIST =====
-async function loadAdmin(){
+// ===== LOAD QUESTIONS =====
+async function loadAdminQ(){
  let snap=await getDocs(collection(db,"questions"));
-
- let html="<h3>All Questions</h3>";
+ let html="<h3>Questions</h3>";
 
  snap.forEach(d=>{
   let q=d.data();
-
   html+=`<div class="card">
   ${q.question}
-  <button onclick="edit('${d.id}')">Edit</button>
-  <button onclick="del('${d.id}')">Delete</button>
+  <button onclick="editQ('${d.id}')">Edit</button>
+  <button onclick="delQ('${d.id}')">Delete</button>
   </div>`;
  });
 
- document.getElementById("list").innerHTML=html;
+ qList.innerHTML=html;
 }
 
-// ===== DELETE =====
-window.del=async function(id){
- await deleteDoc(doc(db,"questions",id));
- alert("Deleted");
- openAdmin();
-};
-
-// ===== EDIT =====
-window.edit=async function(id){
+// ===== EDIT Q =====
+window.editQ=async function(id){
  let snap=await getDocs(collection(db,"questions"));
-
  snap.forEach(d=>{
   if(d.id==id){
     let q=d.data();
     topic.value=q.topic;
     test.value=q.test;
     question.value=q.question;
-    image.value=q.image||"";
-
     opt1.value=q.options[0];
     opt2.value=q.options[1];
     opt3.value=q.options[2];
     opt4.value=q.options[3];
-
     answer.value=q.answer;
     explanation.value=q.explanation;
-
     editId=id;
   }
  });
+};
+
+// ===== DELETE Q =====
+window.delQ=async function(id){
+ await deleteDoc(doc(db,"questions",id));
+ openAdmin();
+};
+
+// ===== THEORY =====
+window.saveTheory=async function(){
+ let data={topic:tTopic.value,content:tContent.value};
+
+ if(editTheoryId){
+  await updateDoc(doc(db,"theory",editTheoryId),data);
+  editTheoryId=null;
+ } else {
+  await addDoc(collection(db,"theory"),data);
+ }
+
+ openAdmin();
+};
+
+async function loadAdminTheory(){
+ let snap=await getDocs(collection(db,"theory"));
+ let html="<h3>Theory</h3>";
+
+ snap.forEach(d=>{
+  let t=d.data();
+  html+=`<div class="card">
+  ${t.topic}
+  <button onclick="editT('${d.id}')">Edit</button>
+  <button onclick="delT('${d.id}')">Delete</button>
+  </div>`;
+ });
+
+ tList.innerHTML=html;
+}
+
+window.editT=async function(id){
+ let snap=await getDocs(collection(db,"theory"));
+ snap.forEach(d=>{
+  if(d.id==id){
+    let t=d.data();
+    tTopic.value=t.topic;
+    tContent.value=t.content;
+    editTheoryId=id;
+  }
+ });
+};
+
+window.delT=async function(id){
+ await deleteDoc(doc(db,"theory",id));
+ openAdmin();
 };
 
 // START

@@ -1,9 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{font-family:Arial;background:#f5f6fa;margin:0;}
+#app{padding:15px;}
+button{padding:10px;margin:5px;border:none;background:#0984e3;color:white;border-radius:6px;cursor:pointer;}
+.option{display:block;width:100%;padding:10px;margin:5px 0;background:#dfe6e9;border:none;}
+.option.selected{background:#0984e3;color:white;}
+</style>
+</head>
+
+<body>
+
+<div id="app">Loading...</div>
+
+<script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, getDocs, addDoc } 
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+// 🔴 PUT YOUR REAL FIREBASE CONFIG HERE
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
+  apiKey: "AIzaSyDkiFtI0-t4jDWIWhp5gtrFCHSe84CXCHk",
   authDomain: "YOUR_PROJECT.firebaseapp.com",
   projectId: "YOUR_PROJECT"
 };
@@ -13,111 +33,118 @@ const db = getFirestore(app);
 
 const appDiv = document.getElementById("app");
 
-let questions=[];
-let current=0;
-let answers=[];
+// ================= DATA =================
+let questions = [];
+let current = 0;
+let answers = [];
 
-// ================= LOAD QUESTIONS FROM FIREBASE =================
+// ================= LOAD QUESTIONS =================
 async function loadQuestions(){
   let snap = await getDocs(collection(db,"questions"));
 
   questions = [];
-
-  snap.forEach(doc=>{
-    questions.push(doc.data());
+  snap.forEach(d=>{
+    questions.push(d.data());
   });
 
   startTest();
 }
 
-// ================= TEST UI =================
+// ================= START TEST =================
 function startTest(){
 
-  if(questions.length==0){
-    appDiv.innerHTML="<h2>No Questions Found</h2>";
+  if(questions.length === 0){
+    appDiv.innerHTML = "<h2>No Questions Found</h2>";
     return;
   }
 
   answers = Array(questions.length).fill(null);
-  current=0;
+  current = 0;
   renderQ();
 }
 
+// ================= RENDER QUESTION =================
 function renderQ(){
 
   let q = questions[current];
 
-  let html = `<h2>${q.question}</h2>`;
+  let html = `
+    <h2>${q.question}</h2>
+  `;
 
   q.options.forEach(opt=>{
-    let sel = answers[current]==opt ? "background:#0984e3;color:white" : "";
-    html += `<button onclick="select('${opt}')" style="${sel}">${opt}</button><br>`;
+    let sel = answers[current] === opt ? "selected" : "";
+    html += `<button class="option ${sel}" onclick="selectAns('${opt}')">${opt}</button>`;
   });
 
   html += `
-  <br>
-  <button onclick="prev()">Prev</button>
-  <button onclick="next()">Next</button>
-  <button onclick="submit()">Submit</button>
+    <br>
+    <button onclick="prev()">Prev</button>
+    <button onclick="next()">Next</button>
+    <button onclick="submitTest()">Submit</button>
   `;
 
   appDiv.innerHTML = html;
 }
 
-window.select = function(opt){
-  answers[current]=opt;
+// ================= SELECT ANSWER =================
+window.selectAns = function(opt){
+  answers[current] = opt;
   renderQ();
 };
 
+// ================= NAVIGATION =================
 window.next = function(){
-  if(current<questions.length-1){
+  if(current < questions.length - 1){
     current++;
     renderQ();
   }
 };
 
 window.prev = function(){
-  if(current>0){
+  if(current > 0){
     current--;
     renderQ();
   }
 };
 
-window.submit = function(){
+// ================= SUBMIT =================
+window.submitTest = function(){
 
-  let score=0;
+  let score = 0;
 
   questions.forEach((q,i)=>{
-    if(q.answer===answers[i]) score++;
+    if(q.answer === answers[i]) score++;
   });
 
-  appDiv.innerHTML=`
-  <h2>Score: ${score}/${questions.length}</h2>
-  <button onclick="loadQuestions()">Restart</button>
+  appDiv.innerHTML = `
+    <h2>Score: ${score}/${questions.length}</h2>
+    <button onclick="loadQuestions()">Restart</button>
   `;
 };
 
-// ================= ADMIN ADD QUESTION =================
+// ================= ADMIN =================
 window.showAdmin = function(){
 
-  appDiv.innerHTML=`
-  <h2>Admin Panel</h2>
+  appDiv.innerHTML = `
+    <h2>Admin Panel</h2>
 
-  <input id="topic" placeholder="Topic"><br>
-  <input id="test" placeholder="Test"><br>
-  <input id="question" placeholder="Question"><br>
+    <input id="topic" placeholder="Topic"><br>
+    <input id="test" placeholder="Test"><br>
+    <input id="question" placeholder="Question"><br>
 
-  <input id="o1" placeholder="Option 1"><br>
-  <input id="o2" placeholder="Option 2"><br>
-  <input id="o3" placeholder="Option 3"><br>
-  <input id="o4" placeholder="Option 4"><br>
+    <input id="o1" placeholder="Option 1"><br>
+    <input id="o2" placeholder="Option 2"><br>
+    <input id="o3" placeholder="Option 3"><br>
+    <input id="o4" placeholder="Option 4"><br>
 
-  <input id="answer" placeholder="Correct Answer"><br><br>
+    <input id="answer" placeholder="Correct Answer"><br><br>
 
-  <button onclick="saveQ()">Save Question</button>
+    <button onclick="saveQ()">Save Question</button>
   `;
 };
 
+// ================= SAVE QUESTION =================
 window.saveQ = async function(){
 
   await addDoc(collection(db,"questions"),{
@@ -131,7 +158,10 @@ window.saveQ = async function(){
   alert("Question Added!");
 };
 
-window.loadQuestions = loadQuestions;
-
-// AUTO LOAD
+// AUTO START
 loadQuestions();
+
+</script>
+
+</body>
+</html>

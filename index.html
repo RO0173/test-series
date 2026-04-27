@@ -62,8 +62,9 @@ body { margin:0; font-family: Arial; background:#f5f6fa; }
 // 🔥 Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// 🔑 YOUR CONFIG
+// 🔑 CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyDkiFtI0-t4jDWIWhp5gtrFCHSe84CXCHk",
   authDomain: "ro-test-series.firebaseapp.com",
@@ -75,6 +76,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+
+let currentUser = null;
+
+onAuthStateChanged(auth, (user) => {
+  currentUser = user;
+});
 
 // ================= GLOBAL =================
 let topics = [];
@@ -284,10 +292,52 @@ function startTimer(){
   },1000);
 }
 
+// ================= LOGIN =================
+function showLogin() {
+  document.getElementById("app").innerHTML = `
+    <h2>Admin Login</h2>
+
+    <input id="email" placeholder="Email"><br><br>
+    <input id="password" type="password" placeholder="Password"><br><br>
+
+    <button onclick="login()">Login</button>
+    <button onclick="showTopics()">Back</button>
+  `;
+}
+
+window.login = function(){
+  let email = document.getElementById("email").value;
+  let pass = document.getElementById("password").value;
+
+  signInWithEmailAndPassword(auth, email, pass)
+    .then(() => {
+      alert("Login success");
+      openAdmin();
+    })
+    .catch(() => {
+      alert("Invalid login");
+    });
+}
+
+window.logout = function(){
+  signOut(auth).then(()=>{
+    alert("Logged out");
+    showTopics();
+  });
+}
+
 // ================= ADMIN =================
 window.openAdmin = function(){
+
+  if (!currentUser) {
+    showLogin();
+    return;
+  }
+
   document.getElementById("app").innerHTML = `
     <h2>Admin Dashboard</h2>
+
+    <button onclick="logout()">Logout</button>
 
     <div class="card">
       <input id="topic" placeholder="Topic"><br><br>

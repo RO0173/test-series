@@ -2,27 +2,15 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
 body{margin:0;font-family:Arial;background:#f1f3f6;}
 #header{background:#1e272e;color:white;padding:15px;}
 #app{padding:15px;}
-
 .card{background:white;padding:15px;margin:10px 0;border-radius:10px;}
 .btn{padding:10px;margin:5px;border:none;border-radius:6px;background:#0984e3;color:white;}
 .btn-danger{background:#d63031;}
 .option-btn{display:block;width:100%;padding:10px;margin:5px 0;border:none;background:#dfe6e9;}
-
-#testContainer{display:flex;}
-#palette{width:25%;padding:10px;}
-#questionBox{width:75%;padding:10px;}
-
-.palette-btn{width:40px;height:40px;margin:3px;}
-.answered{background:#55efc4;}
-.not-answered{background:#ff7675;}
-.not-visited{background:#b2bec3;}
-
-img{max-width:100%;margin:10px 0;}
+img{max-width:100%;}
 </style>
 </head>
 
@@ -33,7 +21,7 @@ img{max-width:100%;margin:10px 0;}
 
 <script type="module">
 
-// ===== FIREBASE =====
+// 🔥 Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { 
   getFirestore, collection, getDocs, addDoc,
@@ -46,13 +34,14 @@ import {
 import { getStorage, ref, uploadBytes, getDownloadURL } 
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
+// ⚠️ YOUR CONFIG (already yours)
 const firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "YOUR_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_BUCKET",
-  messagingSenderId: "XXX",
-  appId: "XXX"
+  apiKey: "AIzaSyDkiFtI0-t4jDWIWhp5gtrFCHSe84CXCHk",
+  authDomain: "ro-test-series.firebaseapp.com",
+  projectId: "ro-test-series",
+  storageBucket: "ro-test-series.firebasestorage.app",
+  messagingSenderId: "58879445454",
+  appId: "1:58879445454:web:df7d825eab569e3e40c39f"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -60,357 +49,334 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const storage = getStorage(app);
 
-let currentUser=null;
-onAuthStateChanged(auth,u=>currentUser=u);
-
 // ===== GLOBAL =====
-let topics=[],questions=[],currentIndex=0,userAnswers=[],visited=[];
-let editId=null, editTheoryId=null;
+let currentUser = null;
+let topics = [], questions = [];
+let currentIndex = 0, userAnswers = [];
+let editId = null, editTheoryId = null;
+
+// ===== AUTH FIXED =====
+onAuthStateChanged(auth, (user) => {
+  currentUser = user;
+  loadData(); // always show public content
+});
 
 // ===== LOAD DATA =====
 async function loadData(){
- let qSnap=await getDocs(collection(db,"questions"));
- let tSnap=await getDocs(collection(db,"theory"));
+  let qSnap = await getDocs(collection(db,"questions"));
+  let tSnap = await getDocs(collection(db,"theory"));
 
- let map={};
+  let map = {};
 
- qSnap.forEach(d=>{
-  let q=d.data(); q.id=d.id;
+  qSnap.forEach(d=>{
+    let q=d.data(); q.id=d.id;
 
-  if(!map[q.topic]) map[q.topic]={name:q.topic,tests:{},theory:""};
-  if(!map[q.topic].tests[q.test])
-    map[q.topic].tests[q.test]={name:q.test,questions:[]};
+    if(!map[q.topic]) map[q.topic]={name:q.topic,tests:{},theory:""};
+    if(!map[q.topic].tests[q.test])
+      map[q.topic].tests[q.test]={name:q.test,questions:[]};
 
-  map[q.topic].tests[q.test].questions.push(q);
- });
+    map[q.topic].tests[q.test].questions.push(q);
+  });
 
- tSnap.forEach(d=>{
-  let t=d.data();
-  if(!map[t.topic]) map[t.topic]={name:t.topic,tests:{},theory:""};
-  map[t.topic].theory=t.content;
- });
+  tSnap.forEach(d=>{
+    let t=d.data();
+    if(!map[t.topic]) map[t.topic]={name:t.topic,tests:{},theory:""};
+    map[t.topic].theory=t.content;
+  });
 
- topics=Object.values(map).map(t=>({
-  name:t.name,
-  theory:t.theory,
-  tests:Object.values(t.tests)
- }));
+  topics = Object.values(map).map(t=>({
+    name:t.name,
+    theory:t.theory,
+    tests:Object.values(t.tests)
+  }));
 
- showTopics();
+  showTopics();
 }
 
 // ===== HOME =====
 function showTopics(){
- let html="<h2>Subjects</h2>";
+  let html="<h2>Subjects</h2>";
 
- topics.forEach((t,i)=>{
-  html+=`<div class="card">
-  <h3>${t.name}</h3>
-  <button class="btn" onclick="openTopic(${i})">Open</button>
-  </div>`;
- });
+  topics.forEach((t,i)=>{
+    html+=`<div class="card">
+    <h3>${t.name}</h3>
+    <button class="btn" onclick="openTopic(${i})">Open</button>
+    </div>`;
+  });
 
- html+=`<button class="btn" onclick="openAdmin()">Admin</button>`;
- document.getElementById("app").innerHTML=html;
+  html+=`<button class="btn" onclick="openAdmin()">Admin</button>`;
+
+  document.getElementById("app").innerHTML=html;
 }
 
 // ===== TOPIC =====
 window.openTopic=function(i){
- let t=topics[i];
+  let t=topics[i];
 
- let html=`<h2>${t.name}</h2>
- <button class="btn" onclick="showTheory(${i})">Theory</button>`;
+  let html=`<h2>${t.name}</h2>
+  <button class="btn" onclick="showTheory(${i})">Theory</button>`;
 
- t.tests.forEach((test,j)=>{
-  html+=`<div class="card">
-  ${test.name}
-  <button class="btn" onclick="startTest(${i},${j})">Start</button>
-  </div>`;
- });
+  t.tests.forEach((test,j)=>{
+    html+=`<div class="card">
+    ${test.name}
+    <button class="btn" onclick="startTest(${i},${j})">Start</button>
+    </div>`;
+  });
 
- html+=`<button class="btn" onclick="showTopics()">Back</button>`;
- document.getElementById("app").innerHTML=html;
+  html+=`<button class="btn" onclick="showTopics()">Back</button>`;
+  app.innerHTML=html;
 };
 
 // ===== THEORY =====
 window.showTheory=function(i){
- let t=topics[i];
- document.getElementById("app").innerHTML=`
- <h2>${t.name}</h2>
- <div class="card">${t.theory||"No theory"}</div>
- <button class="btn" onclick="openTopic(${i})">Back</button>`;
+  let t=topics[i];
+  app.innerHTML=`
+  <h2>${t.name}</h2>
+  <div class="card">${t.theory||"No theory"}</div>
+  <button onclick="openTopic(${i})">Back</button>`;
 };
 
 // ===== TEST =====
 window.startTest=function(i,j){
- questions=topics[i].tests[j].questions;
- currentIndex=0;
- userAnswers=Array(questions.length).fill(null);
- visited=Array(questions.length).fill(false);
+  questions=topics[i].tests[j].questions;
+  currentIndex=0;
+  userAnswers=Array(questions.length).fill(null);
 
- document.getElementById("app").innerHTML=`
- <div id="testContainer">
-  <div id="palette"></div>
-  <div id="questionBox">
-    <h3 id="q"></h3>
-    <div id="img"></div>
-    <div id="opt"></div>
-    <button onclick="prev()">Prev</button>
-    <button onclick="next()">Next</button>
-    <button onclick="submit()">Submit</button>
-  </div>
- </div>`;
+  app.innerHTML=`
+  <h3 id="q"></h3>
+  <div id="img"></div>
+  <div id="opt"></div>
+  <button onclick="prev()">Prev</button>
+  <button onclick="next()">Next</button>
+  <button onclick="submit()">Submit</button>`;
 
- loadQ();
+  loadQ();
 };
 
 function loadQ(){
- visited[currentIndex]=true;
- let q=questions[currentIndex];
+  let q=questions[currentIndex];
 
- document.getElementById("q").innerText=q.question;
- document.getElementById("img").innerHTML=
-  q.image?`<img src="${q.image}">`:"";
+  document.getElementById("q").innerText=q.question;
+  document.getElementById("img").innerHTML=
+    q.image?`<img src="${q.image}">`:"";
 
- let html="";
- q.options.forEach(o=>{
-  let sel=userAnswers[currentIndex]==o?"#74b9ff":"";
-  html+=`<button class="option-btn" style="background:${sel}"
-  onclick="ans('${o}')">${o}</button>`;
- });
- document.getElementById("opt").innerHTML=html;
+  let html="";
+  q.options.forEach(o=>{
+    html+=`<button class="option-btn" onclick="ans('${o}')">${o}</button>`;
+  });
 
- loadPalette();
+  document.getElementById("opt").innerHTML=html;
 }
 
-window.ans=o=>{userAnswers[currentIndex]=o;loadQ();}
+window.ans=o=>{userAnswers[currentIndex]=o;}
 window.next=()=>{if(currentIndex<questions.length-1){currentIndex++;loadQ();}}
 window.prev=()=>{if(currentIndex>0){currentIndex--;loadQ();}}
 
-function loadPalette(){
- let html="";
- questions.forEach((q,i)=>{
-  let c="not-visited";
-  if(visited[i]&&!userAnswers[i]) c="not-answered";
-  if(userAnswers[i]) c="answered";
-  html+=`<button class="palette-btn ${c}" onclick="go(${i})">${i+1}</button>`;
- });
- document.getElementById("palette").innerHTML=html;
-}
-window.go=i=>{currentIndex=i;loadQ();}
-
 // ===== RESULT =====
 window.submit=function(){
- let score=0;
- questions.forEach((q,i)=>{if(userAnswers[i]==q.answer)score++;});
+  let score=0;
+  questions.forEach((q,i)=>{if(userAnswers[i]==q.answer)score++;});
 
- let html=`<h2>Score ${score}/${questions.length}</h2>`;
- questions.forEach((q,i)=>{
-  html+=`<div class="card">
-  ${q.question}<br>
-  ${q.image?`<img src="${q.image}">`:''}
-  Your: ${userAnswers[i]}<br>
-  Correct: ${q.answer}<br>
-  ${q.explanation}
-  </div>`;
- });
+  let html=`<h2>Score ${score}/${questions.length}</h2>`;
+  questions.forEach((q,i)=>{
+    html+=`<div class="card">
+    ${q.question}<br>
+    ${q.image?`<img src="${q.image}">`:''}
+    Correct: ${q.answer}<br>
+    ${q.explanation}
+    </div>`;
+  });
 
- html+=`<button onclick="loadData()">Home</button>`;
- document.getElementById("app").innerHTML=html;
+  html+=`<button onclick="loadData()">Home</button>`;
+  app.innerHTML=html;
 };
 
-// ===== LOGIN =====
+// ===== LOGIN FIXED =====
 function showLogin(){
- document.getElementById("app").innerHTML=`
- <h2>Login</h2>
- <input id="email"><br><br>
- <input id="pass" type="password"><br><br>
- <button onclick="login()">Login</button>`;
+  app.innerHTML=`
+  <h2>Admin Login</h2>
+  <input id="email"><br><br>
+  <input id="pass" type="password"><br><br>
+  <button onclick="login()">Login</button>`;
 }
 
 window.login=function(){
- signInWithEmailAndPassword(auth,email.value,pass.value)
- .then(()=>openAdmin())
- .catch(()=>alert("Login error"));
+  let e=document.getElementById("email").value.trim();
+  let p=document.getElementById("pass").value.trim();
+
+  signInWithEmailAndPassword(auth,e,p)
+  .then(()=>openAdmin())
+  .catch(err=>alert(err.message));
 };
 
-window.logout=()=>{signOut(auth);showTopics();};
+window.logout=()=>{signOut(auth);loadData();};
 
 // ===== ADMIN =====
 window.openAdmin=function(){
- if(!currentUser){showLogin();return;}
 
- if(currentUser.email!=="hks.sn94@gmail.com"){
-  alert("Access denied");return;
- }
+  if(!currentUser){showLogin();return;}
 
- document.getElementById("app").innerHTML=`
- <h2>Admin Panel</h2>
+  if(currentUser.email!=="hks.sn94@gmail.com"){
+    alert("Access denied"); return;
+  }
 
- <!-- QUESTION -->
- <div class="card">
- <h3>Add/Edit Question</h3>
- <input id="topic" placeholder="Topic"><br><br>
- <input id="test" placeholder="Test"><br><br>
- <input id="question" placeholder="Question"><br><br>
- <input type="file" id="imageFile"><br><br>
+  app.innerHTML=`
+  <h2>Admin Panel</h2>
 
- <input id="opt1"><br><br>
- <input id="opt2"><br><br>
- <input id="opt3"><br><br>
- <input id="opt4"><br><br>
+  <div class="card">
+  <h3>Question</h3>
+  <input id="topic"><br>
+  <input id="test"><br>
+  <input id="question"><br>
+  <input type="file" id="imageFile"><br>
+  <input id="opt1"><br>
+  <input id="opt2"><br>
+  <input id="opt3"><br>
+  <input id="opt4"><br>
+  <input id="answer"><br>
+  <input id="explanation"><br>
+  <button onclick="saveQ()">Save</button>
+  </div>
 
- <input id="answer"><br><br>
- <input id="explanation"><br><br>
+  <div id="qList"></div>
 
- <button onclick="saveQ()">Save Question</button>
- </div>
+  <div class="card">
+  <h3>Theory</h3>
+  <input id="tTopic"><br>
+  <textarea id="tContent"></textarea><br>
+  <button onclick="saveTheory()">Save</button>
+  </div>
 
- <div id="qList"></div>
+  <div id="tList"></div>
 
- <!-- THEORY -->
- <div class="card">
- <h3>Add/Edit Theory</h3>
- <input id="tTopic"><br><br>
- <textarea id="tContent"></textarea><br><br>
- <button onclick="saveTheory()">Save Theory</button>
- </div>
+  <button onclick="loadData()">Back</button>
+  `;
 
- <div id="tList"></div>
-
- <button onclick="loadData()">Back</button>
- `;
-
- loadAdminQ();
- loadAdminTheory();
+  loadAdminQ();
+  loadAdminTheory();
 };
 
 // ===== IMAGE UPLOAD =====
 async function uploadImage(file){
- let r=ref(storage,'q/'+Date.now()+file.name);
- await uploadBytes(r,file);
- return await getDownloadURL(r);
+  let r=ref(storage,'img/'+Date.now()+file.name);
+  await uploadBytes(r,file);
+  return await getDownloadURL(r);
 }
 
 // ===== SAVE QUESTION =====
 window.saveQ=async function(){
- let file=imageFile.files[0];
- let imgUrl="";
+  let file=imageFile.files[0];
+  let img="";
 
- if(file) imgUrl=await uploadImage(file);
+  if(file) img=await uploadImage(file);
 
- let data={
-  topic:topic.value,
-  test:test.value,
-  question:question.value,
-  image:imgUrl,
-  options:[opt1.value,opt2.value,opt3.value,opt4.value],
-  answer:answer.value,
-  explanation:explanation.value
- };
+  let data={
+    topic:topic.value,
+    test:test.value,
+    question:question.value,
+    image:img,
+    options:[opt1.value,opt2.value,opt3.value,opt4.value],
+    answer:answer.value,
+    explanation:explanation.value
+  };
 
- if(editId){
-  await updateDoc(doc(db,"questions",editId),data);
-  editId=null;
- } else {
-  await addDoc(collection(db,"questions"),data);
- }
+  if(editId){
+    await updateDoc(doc(db,"questions",editId),data);
+    editId=null;
+  } else {
+    await addDoc(collection(db,"questions"),data);
+  }
 
- openAdmin();
+  openAdmin();
 };
 
 // ===== LOAD QUESTIONS =====
 async function loadAdminQ(){
- let snap=await getDocs(collection(db,"questions"));
- let html="<h3>Questions</h3>";
+  let snap=await getDocs(collection(db,"questions"));
+  let html="<h3>Questions</h3>";
 
- snap.forEach(d=>{
-  let q=d.data();
-  html+=`<div class="card">
-  ${q.question}
-  <button onclick="editQ('${d.id}')">Edit</button>
-  <button onclick="delQ('${d.id}')">Delete</button>
-  </div>`;
- });
+  snap.forEach(d=>{
+    let q=d.data();
+    html+=`<div class="card">
+    ${q.question}
+    <button onclick="editQ('${d.id}')">Edit</button>
+    <button onclick="delQ('${d.id}')">Delete</button>
+    </div>`;
+  });
 
- qList.innerHTML=html;
+  qList.innerHTML=html;
 }
 
-// ===== EDIT Q =====
 window.editQ=async function(id){
- let snap=await getDocs(collection(db,"questions"));
- snap.forEach(d=>{
-  if(d.id==id){
-    let q=d.data();
-    topic.value=q.topic;
-    test.value=q.test;
-    question.value=q.question;
-    opt1.value=q.options[0];
-    opt2.value=q.options[1];
-    opt3.value=q.options[2];
-    opt4.value=q.options[3];
-    answer.value=q.answer;
-    explanation.value=q.explanation;
-    editId=id;
-  }
- });
+  let snap=await getDocs(collection(db,"questions"));
+  snap.forEach(d=>{
+    if(d.id==id){
+      let q=d.data();
+      topic.value=q.topic;
+      test.value=q.test;
+      question.value=q.question;
+      opt1.value=q.options[0];
+      opt2.value=q.options[1];
+      opt3.value=q.options[2];
+      opt4.value=q.options[3];
+      answer.value=q.answer;
+      explanation.value=q.explanation;
+      editId=id;
+    }
+  });
 };
 
-// ===== DELETE Q =====
 window.delQ=async function(id){
- await deleteDoc(doc(db,"questions",id));
- openAdmin();
+  await deleteDoc(doc(db,"questions",id));
+  openAdmin();
 };
 
 // ===== THEORY =====
 window.saveTheory=async function(){
- let data={topic:tTopic.value,content:tContent.value};
+  let data={topic:tTopic.value,content:tContent.value};
 
- if(editTheoryId){
-  await updateDoc(doc(db,"theory",editTheoryId),data);
-  editTheoryId=null;
- } else {
-  await addDoc(collection(db,"theory"),data);
- }
+  if(editTheoryId){
+    await updateDoc(doc(db,"theory",editTheoryId),data);
+    editTheoryId=null;
+  } else {
+    await addDoc(collection(db,"theory"),data);
+  }
 
- openAdmin();
+  openAdmin();
 };
 
 async function loadAdminTheory(){
- let snap=await getDocs(collection(db,"theory"));
- let html="<h3>Theory</h3>";
+  let snap=await getDocs(collection(db,"theory"));
+  let html="<h3>Theory</h3>";
 
- snap.forEach(d=>{
-  let t=d.data();
-  html+=`<div class="card">
-  ${t.topic}
-  <button onclick="editT('${d.id}')">Edit</button>
-  <button onclick="delT('${d.id}')">Delete</button>
-  </div>`;
- });
+  snap.forEach(d=>{
+    let t=d.data();
+    html+=`<div class="card">
+    ${t.topic}
+    <button onclick="editT('${d.id}')">Edit</button>
+    <button onclick="delT('${d.id}')">Delete</button>
+    </div>`;
+  });
 
- tList.innerHTML=html;
+  tList.innerHTML=html;
 }
 
 window.editT=async function(id){
- let snap=await getDocs(collection(db,"theory"));
- snap.forEach(d=>{
-  if(d.id==id){
-    let t=d.data();
-    tTopic.value=t.topic;
-    tContent.value=t.content;
-    editTheoryId=id;
-  }
- });
+  let snap=await getDocs(collection(db,"theory"));
+  snap.forEach(d=>{
+    if(d.id==id){
+      let t=d.data();
+      tTopic.value=t.topic;
+      tContent.value=t.content;
+      editTheoryId=id;
+    }
+  });
 };
 
 window.delT=async function(id){
- await deleteDoc(doc(db,"theory",id));
- openAdmin();
+  await deleteDoc(doc(db,"theory",id));
+  openAdmin();
 };
-
-// START
-loadData();
 
 </script>
 </body>

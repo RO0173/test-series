@@ -2,334 +2,187 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exam Platform</title>
+
 <style>
-body{margin:0;font-family:Arial;background:#f1f3f6;}
-#header{background:#1e272e;color:white;padding:15px;}
+body{margin:0;font-family:Arial;background:#f5f6fa;}
+#header{background:#2d3436;color:white;padding:15px;font-size:18px;}
 #app{padding:15px;}
 .card{background:white;padding:15px;margin:10px 0;border-radius:10px;}
-.btn{padding:10px;margin:5px;border:none;border-radius:6px;background:#0984e3;color:white;cursor:pointer;}
-.option-btn{display:block;width:100%;padding:10px;margin:5px 0;border:none;background:#dfe6e9;cursor:pointer;}
-.palette-btn{width:40px;height:40px;margin:3px;border:none;}
-textarea{width:100%;height:120px;}
+.btn{padding:10px;background:#0984e3;color:white;border:none;border-radius:6px;cursor:pointer;}
+input,textarea{width:100%;padding:10px;margin:5px 0;}
+.option{padding:10px;margin:5px 0;background:#dfe6e9;border:none;width:100%;}
+.option.selected{background:#0984e3;color:white;}
+.palette button{width:40px;height:40px;margin:3px;}
 </style>
+
 </head>
 
 <body>
-<div id="header">📘 Test Platform</div>
+
+<div id="header">📘 Exam System</div>
 <div id="app">Loading...</div>
 
 <script type="module">
 
-// 🔥 Firebase
+// ================= FIREBASE =================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc } 
+import { getFirestore, collection, getDocs, addDoc } 
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } 
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+// 🔴 REPLACE ONLY THIS
 const firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "ro-test-series.firebaseapp.com",
-  projectId: "ro-test-series"
+  apiKey: "AIzaSyDkiFtI0-t4jDWIWhp5gtrFCHSe84CXCHk",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_BUCKET",
+  messagingSenderId: "YOUR_ID",
+  appId: "YOUR_APP_ID"
 };
 
-const appF = initializeApp(firebaseConfig);
-const db = getFirestore(appF);
-const auth = getAuth(appF);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
 const appDiv = document.getElementById("app");
 
-// ===== GLOBAL =====
-let currentUser=null;
-let topics=[];
-let editId=null, editTheoryId=null;
+// ================= DATA =================
+let questions=[], current=0, answers=[];
 
-// ===== AUTH =====
+// ================= LOGIN CHECK =================
 onAuthStateChanged(auth,(user)=>{
-  currentUser=user;
-  loadData();
+  if(user){
+    loadHome();
+  }else{
+    showLogin();
+  }
 });
 
-// ===== LOAD DATA =====
-async function loadData(){
-
-  let qSnap = await getDocs(collection(db,"questions"));
-  let tSnap = await getDocs(collection(db,"theory"));
-
-  let map={};
-
-  qSnap.forEach(d=>{
-    let q=d.data(); q.id=d.id;
-
-    if(!map[q.topic]) map[q.topic]={name:q.topic,tests:{},theory:""};
-    if(!map[q.topic].tests[q.test])
-      map[q.topic].tests[q.test]={name:q.test,questions:[]};
-
-    map[q.topic].tests[q.test].questions.push(q);
-  });
-
-  tSnap.forEach(d=>{
-    let t=d.data(); t.id=d.id;
-
-    if(!map[t.topic]) map[t.topic]={name:t.topic,tests:{},theory:""};
-    map[t.topic].theory=t.content;
-  });
-
-  topics = Object.values(map).map(t=>({
-    name:t.name,
-    theory:t.theory,
-    tests:Object.values(t.tests)
-  }));
-
-  showHome();
-}
-
-// ===== HOME =====
-function showHome(){
-  let html="<h2>Subjects</h2>";
-
-  topics.forEach((t,i)=>{
-    html+=`<div class="card">
-    <h3>${t.name}</h3>
-    <button class="btn" onclick="openTopic(${i})">Open</button>
-    </div>`;
-  });
-
-  html+=`<button class="btn" onclick="openAdmin()">Admin</button>`;
-  appDiv.innerHTML=html;
-}
-
-// ===== TOPIC =====
-window.openTopic=function(i){
-  let t=topics[i];
-
-  let html=`<h2>${t.name}</h2>
-  <button class="btn" onclick="showTheory(${i})">Theory</button>`;
-
-  t.tests.forEach((test,j)=>{
-    html+=`<div class="card">${test.name}</div>`;
-  });
-
-  html+=`<button class="btn" onclick="showHome()">Back</button>`;
-  appDiv.innerHTML=html;
-};
-
-// ===== THEORY =====
-window.showTheory=function(i){
-  let t=topics[i];
-  appDiv.innerHTML=`
-  <h2>${t.name}</h2>
-  <div class="card">${t.theory||"No theory"}</div>
-  <button onclick="openTopic(${i})">Back</button>`;
-};
-
-// ===== ADMIN LOGIN =====
+// ================= LOGIN =================
 function showLogin(){
   appDiv.innerHTML=`
   <h2>Admin Login</h2>
-  <input id="email"><br><br>
-  <input id="pass" type="password"><br><br>
-  <button onclick="login()">Login</button>`;
+  <input id="email" placeholder="Email">
+  <input id="pass" type="password" placeholder="Password">
+  <button class="btn" onclick="login()">Login</button>
+  <hr>
+  <button class="btn" onclick="loadHome()">Enter as Student</button>
+  `;
 }
 
 window.login=function(){
   signInWithEmailAndPassword(auth,email.value,pass.value)
-  .then(()=>openAdmin())
-  .catch(err=>alert(err.message));
+  .then(()=>loadAdmin())
+  .catch(e=>alert(e.message));
 };
 
-// ===== ADMIN PANEL =====
-window.openAdmin=function(){
-
-  if(!currentUser){showLogin();return;}
-
-  if(currentUser.email!=="hks.sn94@gmail.com"){
-    alert("Access denied"); return;
-  }
-
+// ================= HOME =================
+function loadHome(){
   appDiv.innerHTML=`
+  <h2>Welcome</h2>
+  <button class="btn" onclick="startTest()">Start Test</button>
+  `;
+}
 
-  <h2>Admin Dashboard</h2>
+// ================= TEST =================
+window.startTest=function(){
+  questions=[
+    {
+      question:"2+2=?",
+      options:["1","2","3","4"],
+      answer:"4"
+    }
+  ];
 
-  <h3>📘 Theory Section</h3>
-  <input id="tTopic" placeholder="Topic"><br>
-  <textarea id="tContent"></textarea><br>
-  <button onclick="saveTheory()">Save Theory</button>
+  answers=Array(questions.length).fill(null);
+  current=0;
+  renderQ();
+};
 
-  <div id="tList"></div>
+function renderQ(){
+  let q=questions[current];
 
-  <hr>
-
-  <h3>📝 Question Section</h3>
-  <input id="topic" placeholder="Topic"><br>
-  <input id="test" placeholder="Test Name"><br>
-  <input id="question" placeholder="Question"><br>
-
-  <input id="opt1"><br>
-  <input id="opt2"><br>
-  <input id="opt3"><br>
-  <input id="opt4"><br>
-
-  <input id="answer" placeholder="Correct Answer"><br>
-  <input id="explanation"><br>
-
-  <button onclick="saveQ()">Save Question</button>
-
-  <h3>Bulk Upload (JSON)</h3>
-  <textarea id="bulk"></textarea><br>
-  <button onclick="bulkUpload()">Upload</button>
-
-  <div id="qList"></div>
-
-  <button onclick="showHome()">Back</button>
+  let html=`
+  <h3>${q.question}</h3>
   `;
 
-  loadAdminQ();
-  loadAdminTheory();
+  q.options.forEach(opt=>{
+    let sel=answers[current]==opt?"selected":"";
+    html+=`<button class="option ${sel}" onclick="selectAns('${opt}')">${opt}</button>`;
+  });
+
+  html+=`
+  <br>
+  <button class="btn" onclick="prev()">Prev</button>
+  <button class="btn" onclick="next()">Next</button>
+  <button class="btn" onclick="submit()">Submit</button>
+  `;
+
+  appDiv.innerHTML=html;
+}
+
+window.selectAns=function(opt){
+  answers[current]=opt;
+  renderQ();
 };
 
-// ===== LOAD QUESTIONS =====
-async function loadAdminQ(){
-  let snap=await getDocs(collection(db,"questions"));
-  let html="<h3>All Questions</h3>";
+window.next=function(){
+  if(current<questions.length-1){
+    current++;
+    renderQ();
+  }
+};
 
-  snap.forEach(d=>{
-    let q=d.data();
+window.prev=function(){
+  if(current>0){
+    current--;
+    renderQ();
+  }
+};
 
-    html+=`
-    <div class="card">
-      ${q.question}<br>
-      <small>${q.topic} | ${q.test}</small><br><br>
-      <button onclick="editQ('${d.id}')">Edit</button>
-      <button onclick="delQ('${d.id}')">Delete</button>
-    </div>`;
+window.submit=function(){
+  let score=0;
+
+  questions.forEach((q,i)=>{
+    if(q.answer===answers[i]) score++;
   });
 
-  qList.innerHTML=html;
+  appDiv.innerHTML=`
+  <h2>Score: ${score}/${questions.length}</h2>
+  <button class="btn" onclick="loadHome()">Home</button>
+  `;
+};
+
+// ================= ADMIN =================
+function loadAdmin(){
+  appDiv.innerHTML=`
+  <h2>Admin Panel</h2>
+
+  <input id="q" placeholder="Question">
+  <input id="o1" placeholder="Option 1">
+  <input id="o2" placeholder="Option 2">
+  <input id="o3" placeholder="Option 3">
+  <input id="o4" placeholder="Option 4">
+  <input id="ans" placeholder="Answer">
+
+  <button class="btn" onclick="saveQ()">Save</button>
+  <button class="btn" onclick="loadHome()">Exit</button>
+  `;
 }
 
-// ===== LOAD THEORY =====
-async function loadAdminTheory(){
-  let snap=await getDocs(collection(db,"theory"));
-  let html="<h3>All Theory</h3>";
-
-  snap.forEach(d=>{
-    let t=d.data();
-
-    html+=`
-    <div class="card">
-      ${t.topic}<br><br>
-      <button onclick="editT('${d.id}')">Edit</button>
-      <button onclick="delT('${d.id}')">Delete</button>
-    </div>`;
-  });
-
-  tList.innerHTML=html;
-}
-
-// ===== SAVE QUESTION =====
 window.saveQ=async function(){
-
-  let data={
-    topic:topic.value,
-    test:test.value,
-    question:question.value,
-    options:[opt1.value,opt2.value,opt3.value,opt4.value],
-    answer:answer.value,
-    explanation:explanation.value
-  };
-
-  if(editId){
-    await updateDoc(doc(db,"questions",editId),data);
-    editId=null;
-  }else{
-    await addDoc(collection(db,"questions"),data);
-  }
-
-  openAdmin();
-};
-
-// ===== EDIT QUESTION =====
-window.editQ=async function(id){
-  let snap=await getDocs(collection(db,"questions"));
-  snap.forEach(d=>{
-    if(d.id===id){
-      let q=d.data();
-
-      topic.value=q.topic;
-      test.value=q.test;
-      question.value=q.question;
-      opt1.value=q.options[0];
-      opt2.value=q.options[1];
-      opt3.value=q.options[2];
-      opt4.value=q.options[3];
-      answer.value=q.answer;
-      explanation.value=q.explanation;
-
-      editId=id;
-    }
+  await addDoc(collection(db,"questions"),{
+    question:q.value,
+    options:[o1.value,o2.value,o3.value,o4.value],
+    answer:ans.value
   });
-};
 
-// ===== DELETE QUESTION =====
-window.delQ=async function(id){
-  if(!confirm("Delete?")) return;
-  await deleteDoc(doc(db,"questions",id));
-  openAdmin();
-};
-
-// ===== SAVE THEORY =====
-window.saveTheory=async function(){
-  let data={topic:tTopic.value,content:tContent.value};
-
-  if(editTheoryId){
-    await updateDoc(doc(db,"theory",editTheoryId),data);
-    editTheoryId=null;
-  }else{
-    await addDoc(collection(db,"theory"),data);
-  }
-
-  openAdmin();
-};
-
-// ===== EDIT THEORY =====
-window.editT=async function(id){
-  let snap=await getDocs(collection(db,"theory"));
-  snap.forEach(d=>{
-    if(d.id===id){
-      let t=d.data();
-      tTopic.value=t.topic;
-      tContent.value=t.content;
-      editTheoryId=id;
-    }
-  });
-};
-
-// ===== DELETE THEORY =====
-window.delT=async function(id){
-  if(!confirm("Delete?")) return;
-  await deleteDoc(doc(db,"theory",id));
-  openAdmin();
-};
-
-// ===== BULK UPLOAD =====
-window.bulkUpload=async function(){
-
-  try{
-    let data = JSON.parse(bulk.value);
-
-    for(let q of data){
-      await addDoc(collection(db,"questions"),q);
-    }
-
-    alert("Uploaded!");
-    openAdmin();
-
-  }catch(e){
-    alert("Invalid JSON");
-  }
+  alert("Saved!");
 };
 
 </script>
+
 </body>
 </html>

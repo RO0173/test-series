@@ -3,52 +3,102 @@
 <body>
 
 <script>
-let tests = [
+
+// ✅ DATA STRUCTURE (TOPICS + THEORY + TESTS)
+let topics = [
   {
-    name: "Math Test",
-    questions: [
+    name: "Math",
+    theory: "Math is the study of numbers. Example: Addition, Multiplication.",
+    tests: [
       {
-        question: "2 + 2 = ?",
-        options: ["1", "2", "3", "4"],
-        answer: "4",
-        explanation: "2 + 2 = 4"
+        name: "Basic Math Test",
+        questions: [
+          {
+            question: "2 + 2 = ?",
+            options: ["1", "2", "3", "4"],
+            answer: "4",
+            explanation: "2 + 2 = 4"
+          }
+        ]
       }
     ]
   },
   {
-    name: "Reasoning Test",
-    questions: [
+    name: "Reasoning",
+    theory: "Reasoning improves logical thinking ability.",
+    tests: [
       {
-        question: "Find next: 2, 4, 6, ?",
-        options: ["7", "8", "9", "10"],
-        answer: "8",
-        explanation: "Pattern +2"
+        name: "Basic Reasoning Test",
+        questions: [
+          {
+            question: "Find next: 2, 4, 6, ?",
+            options: ["7", "8", "9", "10"],
+            answer: "8",
+            explanation: "Pattern +2"
+          }
+        ]
       }
     ]
   }
 ];
 
+// ================= QUIZ VARIABLES =================
 let questions = [];
 let currentIndex = 0;
 let score = 0;
 let answered = false;
 let userAnswers = [];
 let timeLeft = 30;
+let timerInterval;
 
-// ✅ Show test list
-function showTests() {
-  let html = "<h2>Select a Test</h2>";
+// ================= UI FUNCTIONS =================
 
-  tests.forEach((test, index) => {
-    html += `<button onclick="startTest(${index})">${test.name}</button><br><br>`;
+// ✅ Show Topics
+function showTopics() {
+  let html = "<h2>Select Topic</h2>";
+
+  topics.forEach((topic, index) => {
+    html += `<button onclick="openTopic(${index})">${topic.name}</button><br><br>`;
   });
 
   document.body.innerHTML = html;
 }
 
-// ✅ Start selected test
-function startTest(index) {
-  questions = tests[index].questions;
+// ✅ Open Topic
+function openTopic(index) {
+  let topic = topics[index];
+
+  let html = `
+    <h2>${topic.name}</h2>
+    <button onclick="showTheory(${index})">View Theory</button>
+    <h3>Tests:</h3>
+  `;
+
+  topic.tests.forEach((test, i) => {
+    html += `<button onclick="startTest(${index}, ${i})">${test.name}</button><br><br>`;
+  });
+
+  html += `<br><button onclick="showTopics()">Back</button>`;
+
+  document.body.innerHTML = html;
+}
+
+// ✅ Show Theory
+function showTheory(index) {
+  let topic = topics[index];
+
+  document.body.innerHTML = `
+    <h2>${topic.name} Theory</h2>
+    <p>${topic.theory}</p>
+    <button onclick="openTopic(${index})">Back</button>
+  `;
+}
+
+// ================= QUIZ LOGIC =================
+
+// ✅ Start Test
+function startTest(topicIndex, testIndex) {
+  questions = topics[topicIndex].tests[testIndex].questions;
 
   currentIndex = 0;
   score = 0;
@@ -70,10 +120,10 @@ function startTest(index) {
   startTimer();
 }
 
-// ✅ Load question
+// ✅ Load Question
 function loadQuestion() {
   let q = questions[currentIndex];
-  
+
   document.getElementById("question").innerText = q.question;
   document.getElementById("explanation").innerText = "";
   answered = false;
@@ -82,38 +132,40 @@ function loadQuestion() {
   let selected = userAnswers[currentIndex];
 
   q.options.forEach(opt => {
-    if (selected === opt) {
-      optionsHtml += `<button style="background-color: lightgreen" onclick="checkAnswer('${opt}')">${opt}</button><br>`;
-    } else {
-      optionsHtml += `<button onclick="checkAnswer('${opt}')">${opt}</button><br>`;
-    }
+    let color = (selected === opt) ? "lightgreen" : "";
+    optionsHtml += `<button style="background:${color}" onclick="checkAnswer('${opt}')">${opt}</button><br>`;
   });
 
   document.getElementById("options").innerHTML = optionsHtml;
 
-  loadPalette(); // ✅ IMPORTANT
+  loadPalette();
 }
 
-// ✅ Check answer
+// ✅ Check Answer (FIXED SCORING BUG)
 function checkAnswer(selected) {
   if (answered) return;
 
   answered = true;
 
-  userAnswers[currentIndex] = selected;
-
   let correct = questions[currentIndex].answer;
 
-  if (selected === correct) {
-    score++;
+  // Prevent double scoring
+  if (!userAnswers[currentIndex]) {
+    if (selected === correct) {
+      score++;
+    }
   }
 
-  // highlight selected button
+  userAnswers[currentIndex] = selected;
+
   let buttons = document.querySelectorAll("#options button");
 
   buttons.forEach(btn => {
     if (btn.innerText === selected) {
       btn.style.backgroundColor = "lightgreen";
+    }
+    if (btn.innerText === correct) {
+      btn.style.backgroundColor = "lightblue";
     }
   });
 
@@ -122,9 +174,10 @@ function checkAnswer(selected) {
 
   loadPalette();
 }
-// ✅ Next question
+
+// ✅ Next Question
 function nextQuestion() {
-  if (!answered) {
+  if (!userAnswers[currentIndex]) {
     alert("Please select an answer first!");
     return;
   }
@@ -138,7 +191,7 @@ function nextQuestion() {
   }
 }
 
-// ✅ Previous question
+// ✅ Previous Question
 function prevQuestion() {
   if (currentIndex > 0) {
     currentIndex--;
@@ -146,7 +199,7 @@ function prevQuestion() {
   }
 }
 
-// ✅ Question palette
+// ✅ Palette
 function loadPalette() {
   let html = "<h3>Questions:</h3>";
 
@@ -154,7 +207,7 @@ function loadPalette() {
     let color = userAnswers[index] ? "lightgreen" : "lightgray";
 
     html += `<button 
-      style="background-color:${color}; margin:2px;"
+      style="background:${color}; margin:2px;"
       onclick="goToQuestion(${index})">
       ${index + 1}
     </button>`;
@@ -163,14 +216,16 @@ function loadPalette() {
   document.getElementById("palette").innerHTML = html;
 }
 
-// ✅ Jump to question
+// ✅ Jump
 function goToQuestion(index) {
   currentIndex = index;
   loadQuestion();
 }
 
-// ✅ Show result
+// ✅ Result
 function showResult() {
+  clearInterval(timerInterval);
+
   let resultHTML = `<h2>Your Score: ${score}</h2>`;
 
   questions.forEach((q, index) => {
@@ -183,12 +238,16 @@ function showResult() {
     `;
   });
 
+  resultHTML += `<button onclick="showTopics()">Go Home</button>`;
+
   document.body.innerHTML = resultHTML;
 }
 
-// ✅ Timer
+// ✅ Timer (FIXED MULTIPLE TIMER BUG)
 function startTimer() {
-  let timerInterval = setInterval(() => {
+  clearInterval(timerInterval);
+
+  timerInterval = setInterval(() => {
     timeLeft--;
     document.getElementById("timer").innerText = timeLeft;
 
@@ -200,8 +259,8 @@ function startTimer() {
   }, 1000);
 }
 
-// ✅ Start app
-showTests();
+// ✅ Start App
+showTopics();
 
 </script>
 

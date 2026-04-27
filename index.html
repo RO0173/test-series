@@ -1,6 +1,124 @@
 <!DOCTYPE html>
 <html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f5f6fa;
+}
+
+/* TOP BAR */
+#topbar {
+  background: #2d3436;
+  color: white;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+}
+
+/* LAYOUT */
+#container {
+  display: flex;
+  height: calc(100vh - 50px);
+}
+
+/* LEFT PANEL */
+#palettePanel {
+  width: 25%;
+  background: #ecf0f1;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+/* RIGHT PANEL */
+#questionPanel {
+  width: 75%;
+  padding: 20px;
+}
+
+/* QUESTION CARD */
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* OPTIONS */
+.option-btn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  border: none;
+  border-radius: 8px;
+  background: #dfe6e9;
+  cursor: pointer;
+  text-align: left;
+}
+
+/* NAV BUTTONS */
+.nav-btn {
+  padding: 10px 15px;
+  margin: 5px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #0984e3;
+  color: white;
+}
+
+/* PALETTE BUTTONS */
+.palette-btn {
+  width: 40px;
+  height: 40px;
+  margin: 4px;
+  border: none;
+  border-radius: 5px;
+}
+
+/* COLORS */
+.not-visited { background: #b2bec3; }
+.answered { background: #55efc4; }
+.not-answered { background: #ff7675; }
+.marked { background: #ffeaa7; }
+
+/* MOBILE VIEW */
+@media (max-width: 768px) {
+
+  #container {
+    flex-direction: column;
+  }
+
+  #palettePanel {
+    width: 100%;
+    height: auto;
+    display: flex;
+    overflow-x: auto;
+  }
+
+  #questionPanel {
+    width: 100%;
+  }
+
+  .palette-btn {
+    flex: 0 0 auto;
+  }
+
+}
+
+</style>
+</head>
+
 <body>
+
+<div id="app"></div>
 
 <script>
 
@@ -37,88 +155,100 @@ let currentIndex = 0;
 let userAnswers = [];
 let marked = [];
 let visited = [];
-let score = 0;
 let timeLeft = 60;
 let timerInterval;
 
-// ================= TOPIC UI =================
+// ================= HOME =================
 function showTopics() {
   let html = "<h2>Select Topic</h2>";
+
   topics.forEach((t, i) => {
-    html += `<button onclick="openTopic(${i})">${t.name}</button><br><br>`;
+    html += `<button class="nav-btn" onclick="openTopic(${i})">${t.name}</button><br><br>`;
   });
-  document.body.innerHTML = html;
+
+  document.getElementById("app").innerHTML = html;
 }
 
+// ================= TOPIC =================
 function openTopic(i) {
   let t = topics[i];
+
   let html = `<h2>${t.name}</h2>
-  <button onclick="showTheory(${i})">View Theory</button><h3>Tests:</h3>`;
+  <button class="nav-btn" onclick="showTheory(${i})">📖 Theory</button>
+  <h3>Tests:</h3>`;
 
   t.tests.forEach((test, j) => {
-    html += `<button onclick="startTest(${i},${j})">${test.name}</button><br><br>`;
+    html += `<button class="nav-btn" onclick="startTest(${i},${j})">${test.name}</button><br><br>`;
   });
 
-  html += `<button onclick="showTopics()">Back</button>`;
-  document.body.innerHTML = html;
-}
+  html += `<button class="nav-btn" onclick="showTopics()">⬅ Back</button>`;
 
-function showTheory(i) {
-  document.body.innerHTML = `
-  <h2>${topics[i].name} Theory</h2>
-  <p>${topics[i].theory}</p>
-  <button onclick="openTopic(${i})">Back</button>`;
+  document.getElementById("app").innerHTML = html;
 }
 
 // ================= TEST =================
-function startTest(ti, ti2) {
-  questions = topics[ti].tests[ti2].questions;
+function startTest(ti, tj) {
+  questions = topics[ti].tests[tj].questions;
 
   currentIndex = 0;
   userAnswers = Array(questions.length).fill(null);
   marked = Array(questions.length).fill(false);
   visited = Array(questions.length).fill(false);
-  score = 0;
   timeLeft = 60;
 
-  document.body.innerHTML = `
-    <h3>Time: <span id="timer">60</span>s</h3>
-    <div id="palette"></div>
-    <h2 id="question"></h2>
-    <div id="options"></div><br>
-    <button onclick="markReview()">Mark for Review</button>
-    <button onclick="prevQuestion()">Previous</button>
-    <button onclick="nextQuestion()">Next</button>
-    <button onclick="submitTest()">Submit</button>
+  document.getElementById("app").innerHTML = `
+    <div id="topbar">
+      <div>⏱ <span id="timer">60</span>s</div>
+      <button class="nav-btn" onclick="submitTest()">Submit</button>
+    </div>
+
+    <div id="container">
+      <div id="palettePanel"></div>
+
+      <div id="questionPanel">
+        <div class="card">
+          <h3 id="question"></h3>
+          <div id="options"></div>
+
+          <button class="nav-btn" onclick="markReview()">⭐ Mark</button>
+          <button class="nav-btn" onclick="prevQuestion()">⬅ Prev</button>
+          <button class="nav-btn" onclick="nextQuestion()">Next ➡</button>
+        </div>
+      </div>
+    </div>
   `;
 
   loadQuestion();
   startTimer();
 }
 
-// ================= QUESTION =================
+// ================= LOAD QUESTION =================
 function loadQuestion() {
   visited[currentIndex] = true;
 
   let q = questions[currentIndex];
-  document.getElementById("question").innerText = q.question;
+
+  document.getElementById("question").innerText =
+    `Q${currentIndex+1}: ${q.question}`;
 
   let html = "";
   q.options.forEach(opt => {
-    let selected = userAnswers[currentIndex] === opt ? "lightgreen" : "";
-    html += `<button style="background:${selected}" onclick="selectAnswer('${opt}')">${opt}</button><br>`;
+    let selected = userAnswers[currentIndex] === opt ? "#74b9ff" : "";
+    html += `<button class="option-btn" style="background:${selected}"
+      onclick="selectAnswer('${opt}')">${opt}</button>`;
   });
 
   document.getElementById("options").innerHTML = html;
   loadPalette();
 }
 
+// ================= SELECT =================
 function selectAnswer(opt) {
   userAnswers[currentIndex] = opt;
   loadQuestion();
 }
 
-// ================= NAVIGATION =================
+// ================= NAV =================
 function nextQuestion() {
   if (currentIndex < questions.length - 1) {
     currentIndex++;
@@ -138,7 +268,7 @@ function goToQuestion(i) {
   loadQuestion();
 }
 
-// ================= REVIEW =================
+// ================= MARK =================
 function markReview() {
   marked[currentIndex] = !marked[currentIndex];
   loadPalette();
@@ -146,27 +276,26 @@ function markReview() {
 
 // ================= PALETTE =================
 function loadPalette() {
-  let html = "<h3>Questions:</h3>";
+  let html = "";
 
   questions.forEach((q, i) => {
-    let color = "lightgray";
+    let cls = "not-visited";
 
-    if (!visited[i]) color = "lightgray";
-    else if (marked[i]) color = "yellow";
-    else if (userAnswers[i]) color = "lightgreen";
-    else color = "red";
+    if (visited[i] && !userAnswers[i]) cls = "not-answered";
+    if (userAnswers[i]) cls = "answered";
+    if (marked[i]) cls = "marked";
 
-    html += `<button style="background:${color};margin:2px" onclick="goToQuestion(${i})">${i+1}</button>`;
+    html += `<button class="palette-btn ${cls}" onclick="goToQuestion(${i})">${i+1}</button>`;
   });
 
-  document.getElementById("palette").innerHTML = html;
+  document.getElementById("palettePanel").innerHTML = html;
 }
 
 // ================= RESULT =================
 function submitTest() {
   clearInterval(timerInterval);
 
-  score = 0;
+  let score = 0;
   questions.forEach((q, i) => {
     if (userAnswers[i] === q.answer) score++;
   });
@@ -175,27 +304,28 @@ function submitTest() {
 
   questions.forEach((q, i) => {
     html += `
-    <p><b>Q${i+1}: ${q.question}</b></p>
-    <p>Your: ${userAnswers[i]}</p>
-    <p>Correct: ${q.answer}</p>
-    <p>Explanation: ${q.explanation}</p>
-    <hr>`;
+      <div class="card">
+      <p><b>${q.question}</b></p>
+      <p>Your: ${userAnswers[i]}</p>
+      <p>Correct: ${q.answer}</p>
+      <p>${q.explanation}</p>
+      </div><br>`;
   });
 
-  html += `<button onclick="showTopics()">Home</button>`;
-  document.body.innerHTML = html;
+  html += `<button class="nav-btn" onclick="showTopics()">🏠 Home</button>`;
+
+  document.getElementById("app").innerHTML = html;
 }
 
 // ================= TIMER =================
 function startTimer() {
   clearInterval(timerInterval);
+
   timerInterval = setInterval(() => {
     timeLeft--;
     document.getElementById("timer").innerText = timeLeft;
 
     if (timeLeft <= 0) {
-      clearInterval(timerInterval);
-      alert("Time up!");
       submitTest();
     }
   }, 1000);

@@ -4,102 +4,46 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-* { box-sizing: border-box; }
+body{margin:0;font-family:Arial;background:#f1f3f6;}
+#header{background:#1e272e;color:white;padding:15px;}
+#app{padding:15px;}
 
-body {
-  margin:0;
-  font-family: 'Segoe UI', sans-serif;
-  background:#f1f3f6;
-}
+.card{background:white;padding:15px;margin:10px 0;border-radius:10px;}
+.btn{padding:10px;margin:5px;border:none;border-radius:6px;background:#0984e3;color:white;}
+.btn-danger{background:#d63031;}
+.option-btn{display:block;width:100%;padding:10px;margin:5px 0;border:none;background:#dfe6e9;}
 
-#header {
-  background:#1e272e;
-  color:white;
-  padding:15px;
-  display:flex;
-  justify-content:space-between;
-}
+#testContainer{display:flex;}
+#palette{width:25%;padding:10px;}
+#questionBox{width:75%;padding:10px;}
 
-#app { padding:15px; }
+.palette-btn{width:40px;height:40px;margin:3px;}
+.answered{background:#55efc4;}
+.not-answered{background:#ff7675;}
+.not-visited{background:#b2bec3;}
 
-.card {
-  background:white;
-  padding:15px;
-  margin:10px 0;
-  border-radius:10px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.1);
-}
-
-.btn {
-  padding:10px 15px;
-  margin:5px;
-  border:none;
-  border-radius:6px;
-  background:#0984e3;
-  color:white;
-}
-
-.btn-secondary { background:#636e72; }
-.btn-danger { background:#d63031; }
-
-.option-btn {
-  display:block;
-  width:100%;
-  padding:12px;
-  margin:8px 0;
-  border:none;
-  border-radius:6px;
-  background:#dfe6e9;
-  text-align:left;
-}
-
-#testContainer { display:flex; gap:10px; }
-
-#palettePanel {
-  width:25%;
-  background:#ecf0f1;
-  padding:10px;
-  border-radius:10px;
-}
-
-#questionPanel { width:75%; }
-
-.palette-btn {
-  width:40px;
-  height:40px;
-  margin:4px;
-  border:none;
-  border-radius:6px;
-}
-
-.not-visited { background:#b2bec3; }
-.answered { background:#55efc4; }
-.not-answered { background:#ff7675; }
-
-@media(max-width:768px){
-  #testContainer { flex-direction:column; }
-  #palettePanel { width:100%; display:flex; overflow-x:auto; }
-  #questionPanel { width:100%; }
-}
+img{max-width:100%;margin:10px 0;}
 </style>
 </head>
 
 <body>
 
-<div id="header">
-  <div>📘 Test Platform</div>
-</div>
-
+<div id="header">📘 Test Platform</div>
 <div id="app">Loading...</div>
 
 <script type="module">
 
-// 🔥 Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { 
+  getFirestore, collection, getDocs, addDoc,
+  deleteDoc, doc, updateDoc 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { 
+  getAuth, signInWithEmailAndPassword,
+  onAuthStateChanged, signOut 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// CONFIG
+// 🔑 CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyDkiFtI0-t4jDWIWhp5gtrFCHSe84CXCHk",
   authDomain: "ro-test-series.firebaseapp.com",
@@ -113,310 +57,302 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-let currentUser = null;
+let currentUser=null;
+onAuthStateChanged(auth,u=>currentUser=u);
 
-onAuthStateChanged(auth, (user) => {
-  currentUser = user;
-});
+// ===== DATA =====
+let topics=[],questions=[],currentIndex=0,userAnswers=[],visited=[];
+let editId=null;
 
-// ================= DATA =================
-let topics = [];
-let questions = [];
-let currentIndex = 0;
-let userAnswers = [];
-let visited = [];
-let timer;
-let timeLeft = 60;
+// ===== LOAD DATA =====
+async function loadData(){
+ let qSnap=await getDocs(collection(db,"questions"));
+ let tSnap=await getDocs(collection(db,"theory"));
 
-// ================= LOAD =================
-async function loadData() {
+ let map={};
 
-  let qSnap = await getDocs(collection(db, "questions"));
-  let tSnap = await getDocs(collection(db, "theory"));
+ qSnap.forEach(d=>{
+  let q=d.data();
+  q.id=d.id;
 
-  let map = {};
+  if(!map[q.topic]) map[q.topic]={name:q.topic,tests:{},theory:""};
 
-  qSnap.forEach(doc => {
-    let q = doc.data();
+  if(!map[q.topic].tests[q.test]){
+    map[q.topic].tests[q.test]={name:q.test,questions:[]};
+  }
 
-    if (!map[q.topic]) {
-      map[q.topic] = { name:q.topic, tests:{}, theory:"" };
-    }
+  map[q.topic].tests[q.test].questions.push(q);
+ });
 
-    if (!map[q.topic].tests[q.test]) {
-      map[q.topic].tests[q.test] = { name:q.test, questions:[] };
-    }
+ tSnap.forEach(d=>{
+  let t=d.data();
+  if(!map[t.topic]) map[t.topic]={name:t.topic,tests:{},theory:""};
+  map[t.topic].theory=t.content;
+ });
 
-    map[q.topic].tests[q.test].questions.push(q);
-  });
+ topics=Object.values(map).map(t=>({
+  name:t.name,
+  theory:t.theory,
+  tests:Object.values(t.tests)
+ }));
 
-  tSnap.forEach(doc=>{
-    let t = doc.data();
-    if (!map[t.topic]) map[t.topic] = { name:t.topic, tests:{}, theory:"" };
-    map[t.topic].theory = t.content;
-  });
-
-  topics = Object.values(map).map(t => ({
-    name:t.name,
-    theory:t.theory,
-    tests:Object.values(t.tests)
-  }));
-
-  showTopics();
+ showTopics();
 }
 
-// ================= HOME =================
-function showTopics() {
-  let html = "<h2>Subjects</h2>";
+// ===== HOME =====
+function showTopics(){
+ let html="<h2>Subjects</h2>";
 
-  topics.forEach((t,i)=>{
-    html += `
-      <div class="card">
-        <h3>${t.name}</h3>
-        <button class="btn" onclick="openTopic(${i})">Open</button>
-      </div>
-    `;
-  });
-
-  html += `<button class="btn btn-secondary" onclick="openAdmin()">Admin</button>`;
-
-  document.getElementById("app").innerHTML = html;
-}
-
-// ================= TOPIC =================
-window.openTopic = function(i){
-  let t = topics[i];
-
-  let html = `<h2>${t.name}</h2>
-
-  <div class="card">
-    <button class="btn" onclick="showTheory(${i})">View Theory</button>
+ topics.forEach((t,i)=>{
+  html+=`<div class="card">
+  <h3>${t.name}</h3>
+  <button class="btn" onclick="openTopic(${i})">Open</button>
   </div>`;
+ });
 
-  t.tests.forEach((test,j)=>{
-    html += `
-      <div class="card">
-        <h4>${test.name}</h4>
-        <button class="btn" onclick="startTest(${i},${j})">Start Test</button>
-      </div>`;
-  });
-
-  html += `<button class="btn btn-secondary" onclick="showTopics()">Back</button>`;
-
-  document.getElementById("app").innerHTML = html;
+ html+=`<button class="btn" onclick="openAdmin()">Admin</button>`;
+ document.getElementById("app").innerHTML=html;
 }
 
-// ================= THEORY =================
-window.showTheory = function(i){
-  let t = topics[i];
+// ===== TOPIC =====
+window.openTopic=function(i){
+ let t=topics[i];
 
-  document.getElementById("app").innerHTML = `
-    <h2>${t.name} Theory</h2>
-    <div class="card">${t.theory || "No theory yet"}</div>
-    <button class="btn" onclick="openTopic(${i})">Back</button>
-  `;
+ let html=`<h2>${t.name}</h2>
+ <button class="btn" onclick="showTheory(${i})">Theory</button>`;
+
+ t.tests.forEach((test,j)=>{
+  html+=`<div class="card">
+  ${test.name}
+  <button class="btn" onclick="startTest(${i},${j})">Start</button>
+  </div>`;
+ });
+
+ html+=`<button class="btn" onclick="showTopics()">Back</button>`;
+ document.getElementById("app").innerHTML=html;
+};
+
+// ===== THEORY =====
+window.showTheory=function(i){
+ let t=topics[i];
+ document.getElementById("app").innerHTML=`
+ <h2>${t.name}</h2>
+ <div class="card">${t.theory||"No theory"}</div>
+ <button class="btn" onclick="openTopic(${i})">Back</button>`;
+};
+
+// ===== TEST =====
+window.startTest=function(i,j){
+ questions=topics[i].tests[j].questions;
+ currentIndex=0;
+ userAnswers=Array(questions.length).fill(null);
+ visited=Array(questions.length).fill(false);
+
+ document.getElementById("app").innerHTML=`
+ <div id="testContainer">
+  <div id="palette"></div>
+  <div id="questionBox">
+    <h3 id="q"></h3>
+    <div id="img"></div>
+    <div id="opt"></div>
+    <button onclick="prev()">Prev</button>
+    <button onclick="next()">Next</button>
+    <button onclick="submit()">Submit</button>
+  </div>
+ </div>`;
+
+ loadQ();
+};
+
+function loadQ(){
+ visited[currentIndex]=true;
+ let q=questions[currentIndex];
+
+ document.getElementById("q").innerText=q.question;
+
+ // image
+ document.getElementById("img").innerHTML=
+   q.image ? `<img src="${q.image}">` : "";
+
+ let html="";
+ q.options.forEach(o=>{
+  let sel=userAnswers[currentIndex]==o?"#74b9ff":"";
+  html+=`<button class="option-btn" style="background:${sel}"
+  onclick="ans('${o}')">${o}</button>`;
+ });
+ document.getElementById("opt").innerHTML=html;
+
+ loadPalette();
 }
 
-// ================= TEST =================
-window.startTest = function(i,j){
-  questions = topics[i].tests[j].questions;
-
-  currentIndex = 0;
-  userAnswers = Array(questions.length).fill(null);
-  visited = Array(questions.length).fill(false);
-  timeLeft = 60;
-
-  document.getElementById("app").innerHTML = `
-    <div>⏱ <span id="timer">60</span></div>
-
-    <div id="testContainer">
-      <div id="palettePanel"></div>
-
-      <div id="questionPanel">
-        <div class="card">
-          <h3 id="question"></h3>
-          <div id="options"></div>
-          <button class="btn" onclick="prevQ()">Prev</button>
-          <button class="btn" onclick="nextQ()">Next</button>
-          <button class="btn btn-danger" onclick="submitTest()">Submit</button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  loadQuestion();
-  startTimer();
-}
-
-function loadQuestion(){
-  visited[currentIndex] = true;
-
-  let q = questions[currentIndex];
-
-  document.getElementById("question").innerText = q.question;
-
-  let html = "";
-
-  q.options.forEach(opt=>{
-    let selected = userAnswers[currentIndex]===opt ? "#74b9ff" : "";
-    html += `<button class="option-btn" style="background:${selected}" onclick="selectAns('${opt}')">${opt}</button>`;
-  });
-
-  document.getElementById("options").innerHTML = html;
-
-  loadPalette();
-}
-
-window.selectAns = function(opt){
-  userAnswers[currentIndex] = opt;
-  loadQuestion();
-}
-
-window.nextQ = function(){ if(currentIndex < questions.length-1){ currentIndex++; loadQuestion(); } }
-window.prevQ = function(){ if(currentIndex > 0){ currentIndex--; loadQuestion(); } }
+window.ans=o=>{userAnswers[currentIndex]=o;loadQ();}
+window.next=()=>{if(currentIndex<questions.length-1){currentIndex++;loadQ();}}
+window.prev=()=>{if(currentIndex>0){currentIndex--;loadQ();}}
 
 function loadPalette(){
-  let html = "";
+ let html="";
+ questions.forEach((q,i)=>{
+  let c="not-visited";
+  if(visited[i]&&!userAnswers[i]) c="not-answered";
+  if(userAnswers[i]) c="answered";
 
-  questions.forEach((q,i)=>{
-    let cls = "not-visited";
-    if(visited[i] && !userAnswers[i]) cls = "not-answered";
-    if(userAnswers[i]) cls = "answered";
-
-    html += `<button class="palette-btn ${cls}" onclick="goQ(${i})">${i+1}</button>`;
-  });
-
-  document.getElementById("palettePanel").innerHTML = html;
+  html+=`<button class="palette-btn ${c}" onclick="go(${i})">${i+1}</button>`;
+ });
+ document.getElementById("palette").innerHTML=html;
 }
+window.go=i=>{currentIndex=i;loadQ();}
 
-window.goQ = function(i){ currentIndex = i; loadQuestion(); }
+// ===== RESULT =====
+window.submit=function(){
+ let score=0;
+ questions.forEach((q,i)=>{if(userAnswers[i]==q.answer)score++;});
 
-// ================= RESULT =================
-window.submitTest = function(){
-  clearInterval(timer);
+ let html=`<h2>Score ${score}/${questions.length}</h2>`;
+ questions.forEach((q,i)=>{
+  html+=`<div class="card">
+  ${q.question}<br>
+  ${q.image?`<img src="${q.image}">`:''}
+  Your: ${userAnswers[i]}<br>
+  Correct: ${q.answer}<br>
+  ${q.explanation}
+  </div>`;
+ });
 
-  let score = 0;
-  questions.forEach((q,i)=>{ if(userAnswers[i]===q.answer) score++; });
+ html+=`<button onclick="loadData()">Home</button>`;
+ document.getElementById("app").innerHTML=html;
+};
 
-  let html = `<h2>Score: ${score}/${questions.length}</h2>`;
-
-  questions.forEach((q,i)=>{
-    html += `<div class="card">
-      <p>${q.question}</p>
-      <p>Your: ${userAnswers[i]}</p>
-      <p>Correct: ${q.answer}</p>
-      <p>${q.explanation}</p>
-    </div>`;
-  });
-
-  html += `<button class="btn" onclick="loadData()">Home</button>`;
-
-  document.getElementById("app").innerHTML = html;
-}
-
-// ================= TIMER =================
-function startTimer(){
-  clearInterval(timer);
-  timer = setInterval(()=>{
-    timeLeft--;
-    document.getElementById("timer").innerText = timeLeft;
-    if(timeLeft<=0) submitTest();
-  },1000);
-}
-
-// ================= LOGIN =================
+// ===== LOGIN =====
 function showLogin(){
-  document.getElementById("app").innerHTML = `
-    <h2>Admin Login</h2>
-    <input id="email" placeholder="Email"><br><br>
-    <input id="password" type="password" placeholder="Password"><br><br>
-    <button class="btn" onclick="login()">Login</button>
-    <button class="btn" onclick="showTopics()">Back</button>
-  `;
+ document.getElementById("app").innerHTML=`
+ <h2>Login</h2>
+ <input id="email"><br><br>
+ <input id="pass" type="password"><br><br>
+ <button onclick="login()">Login</button>`;
 }
 
-window.login = function(){
-  let email = document.getElementById("email").value;
-  let pass = document.getElementById("password").value;
+window.login=function(){
+ signInWithEmailAndPassword(auth,email.value,pass.value)
+ .then(()=>openAdmin())
+ .catch(()=>alert("error"));
+};
 
-  signInWithEmailAndPassword(auth, email, pass)
-    .then(()=> openAdmin())
-    .catch(()=> alert("Invalid login"));
+window.logout=()=>{signOut(auth);showTopics();};
+
+// ===== ADMIN =====
+window.openAdmin=function(){
+ if(!currentUser){showLogin();return;}
+
+ if(currentUser.email!=="YOUR_EMAIL@gmail.com"){
+  alert("Access denied");return;
+ }
+
+ document.getElementById("app").innerHTML=`
+ <h2>Admin</h2>
+
+ <div class="card">
+ <h3>Add/Edit Question</h3>
+ <input id="topic" placeholder="Topic"><br><br>
+ <input id="test" placeholder="Test"><br><br>
+ <input id="question" placeholder="Question"><br><br>
+ <input id="image" placeholder="Image URL"><br><br>
+
+ <input id="opt1" placeholder="Opt1"><br><br>
+ <input id="opt2" placeholder="Opt2"><br><br>
+ <input id="opt3" placeholder="Opt3"><br><br>
+ <input id="opt4" placeholder="Opt4"><br><br>
+
+ <input id="answer" placeholder="Answer"><br><br>
+ <input id="explanation" placeholder="Explanation"><br><br>
+
+ <button onclick="saveQ()">Save</button>
+ </div>
+
+ <div id="list"></div>
+
+ <button onclick="loadData()">Back</button>
+ `;
+
+ loadAdmin();
+};
+
+// ===== SAVE =====
+window.saveQ=async function(){
+ let data={
+  topic:topic.value,
+  test:test.value,
+  question:question.value,
+  image:image.value,
+  options:[opt1.value,opt2.value,opt3.value,opt4.value],
+  answer:answer.value,
+  explanation:explanation.value
+ };
+
+ if(editId){
+  await updateDoc(doc(db,"questions",editId),data);
+  editId=null;
+ } else {
+  await addDoc(collection(db,"questions"),data);
+ }
+
+ alert("Saved");
+ openAdmin();
+};
+
+// ===== LOAD ADMIN LIST =====
+async function loadAdmin(){
+ let snap=await getDocs(collection(db,"questions"));
+
+ let html="<h3>All Questions</h3>";
+
+ snap.forEach(d=>{
+  let q=d.data();
+
+  html+=`<div class="card">
+  ${q.question}
+  <button onclick="edit('${d.id}')">Edit</button>
+  <button onclick="del('${d.id}')">Delete</button>
+  </div>`;
+ });
+
+ document.getElementById("list").innerHTML=html;
 }
 
-window.logout = function(){
-  signOut(auth).then(()=> showTopics());
-}
+// ===== DELETE =====
+window.del=async function(id){
+ await deleteDoc(doc(db,"questions",id));
+ alert("Deleted");
+ openAdmin();
+};
 
-// ================= ADMIN =================
-window.openAdmin = function(){
+// ===== EDIT =====
+window.edit=async function(id){
+ let snap=await getDocs(collection(db,"questions"));
 
-  if (!currentUser) {
-    showLogin();
-    return;
+ snap.forEach(d=>{
+  if(d.id==id){
+    let q=d.data();
+    topic.value=q.topic;
+    test.value=q.test;
+    question.value=q.question;
+    image.value=q.image||"";
+
+    opt1.value=q.options[0];
+    opt2.value=q.options[1];
+    opt3.value=q.options[2];
+    opt4.value=q.options[3];
+
+    answer.value=q.answer;
+    explanation.value=q.explanation;
+
+    editId=id;
   }
+ });
+};
 
-  if (currentUser.email !== "hks.sn94@gmail.com") {
-    alert("Access denied");
-    showTopics();
-    return;
-  }
-
-  document.getElementById("app").innerHTML = `
-    <h2>Admin Dashboard</h2>
-    <button onclick="logout()">Logout</button>
-
-    <div class="card">
-      <h3>Add Question</h3>
-      <input id="topic" placeholder="Topic"><br><br>
-      <input id="test" placeholder="Test Name"><br><br>
-      <input id="question" placeholder="Question"><br><br>
-      <input id="opt1" placeholder="Option 1"><br><br>
-      <input id="opt2" placeholder="Option 2"><br><br>
-      <input id="opt3" placeholder="Option 3"><br><br>
-      <input id="opt4" placeholder="Option 4"><br><br>
-      <input id="answer" placeholder="Answer"><br><br>
-      <input id="explanation" placeholder="Explanation"><br><br>
-      <button class="btn" onclick="saveQuestion()">Save Question</button>
-    </div>
-
-    <div class="card">
-      <h3>Add Theory</h3>
-      <input id="tTopic" placeholder="Topic"><br><br>
-      <textarea id="tContent" placeholder="Theory..." style="width:100%;height:100px"></textarea><br><br>
-      <button class="btn" onclick="saveTheory()">Save Theory</button>
-    </div>
-
-    <button class="btn" onclick="loadData()">Back</button>
-  `;
-}
-
-window.saveQuestion = async function(){
-  await addDoc(collection(db,"questions"),{
-    topic:topic.value,
-    test:test.value,
-    question:question.value,
-    options:[opt1.value,opt2.value,opt3.value,opt4.value],
-    answer:answer.value,
-    explanation:explanation.value
-  });
-  alert("Saved");
-  openAdmin();
-}
-
-window.saveTheory = async function(){
-  await addDoc(collection(db,"theory"),{
-    topic:tTopic.value,
-    content:tContent.value
-  });
-  alert("Theory Saved");
-  openAdmin();
-}
-
-// ================= START =================
+// START
 loadData();
 
 </script>
-
 </body>
 </html>

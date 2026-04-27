@@ -4,165 +4,122 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
+body { margin:0; font-family: Arial; background:#f5f6fa; }
 
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f5f6fa;
-}
-
-/* TOP BAR */
 #topbar {
-  background: #2d3436;
-  color: white;
-  padding: 10px;
-  display: flex;
-  justify-content: space-between;
-  position: sticky;
-  top: 0;
+  background:#2d3436; color:white; padding:10px;
+  display:flex; justify-content:space-between;
 }
 
-/* LAYOUT */
-#container {
-  display: flex;
-  height: calc(100vh - 50px);
-}
+#container { display:flex; height:90vh; }
 
-/* LEFT PANEL */
 #palettePanel {
-  width: 25%;
-  background: #ecf0f1;
-  padding: 10px;
-  overflow-y: auto;
+  width:25%; background:#ecf0f1; padding:10px; overflow-y:auto;
 }
 
-/* RIGHT PANEL */
-#questionPanel {
-  width: 75%;
-  padding: 20px;
-}
+#questionPanel { width:75%; padding:20px; }
 
-/* QUESTION CARD */
 .card {
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  background:white; padding:20px; border-radius:10px;
 }
 
-/* OPTIONS */
 .option-btn {
-  display: block;
-  width: 100%;
-  padding: 12px;
-  margin: 10px 0;
-  border: none;
-  border-radius: 8px;
-  background: #dfe6e9;
-  cursor: pointer;
-  text-align: left;
+  display:block; width:100%; padding:10px;
+  margin:8px 0; border:none; border-radius:6px;
+  background:#dfe6e9;
 }
 
-/* NAV BUTTONS */
 .nav-btn {
-  padding: 10px 15px;
-  margin: 5px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  background: #0984e3;
-  color: white;
+  padding:10px; margin:5px;
+  border:none; border-radius:6px;
+  background:#0984e3; color:white;
 }
 
-/* PALETTE BUTTONS */
 .palette-btn {
-  width: 40px;
-  height: 40px;
-  margin: 4px;
-  border: none;
-  border-radius: 5px;
+  width:40px; height:40px;
+  margin:4px; border:none;
 }
 
-/* COLORS */
-.not-visited { background: #b2bec3; }
-.answered { background: #55efc4; }
-.not-answered { background: #ff7675; }
-.marked { background: #ffeaa7; }
+.not-visited { background:#b2bec3; }
+.answered { background:#55efc4; }
+.not-answered { background:#ff7675; }
 
-/* MOBILE VIEW */
-@media (max-width: 768px) {
-
-  #container {
-    flex-direction: column;
-  }
-
-  #palettePanel {
-    width: 100%;
-    height: auto;
-    display: flex;
-    overflow-x: auto;
-  }
-
-  #questionPanel {
-    width: 100%;
-  }
-
-  .palette-btn {
-    flex: 0 0 auto;
-  }
-
+@media(max-width:768px){
+  #container { flex-direction:column; }
+  #palettePanel { width:100%; display:flex; overflow-x:auto; }
+  #questionPanel { width:100%; }
 }
-
 </style>
 </head>
 
 <body>
 
-<div id="app"></div>
+<div id="app">Loading...</div>
 
-<script>
+<script type="module">
 
-// ================= DATA =================
-let topics = [
-  {
-    name: "Math",
-    theory: "Math basics...",
-    tests: [
-      {
-        name: "Math Test",
-        questions: [
-          {
-            question: "2 + 2 = ?",
-            options: ["1", "2", "3", "4"],
-            answer: "4",
-            explanation: "2 + 2 = 4"
-          },
-          {
-            question: "5 × 2 = ?",
-            options: ["10", "5", "2", "20"],
-            answer: "10",
-            explanation: "5 × 2 = 10"
-          }
-        ]
-      }
-    ]
-  }
-];
+// 🔥 FIREBASE IMPORT
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// ================= VARIABLES =================
+// 🔥 YOUR CONFIG
+const firebaseConfig = {
+  apiKey: "AIzaSyDkiFtI0-t4jDWIWhp5gtrFCHSe84CXCHk",
+  authDomain: "ro-test-series.firebaseapp.com",
+  projectId: "ro-test-series",
+  storageBucket: "ro-test-series.firebasestorage.app",
+  messagingSenderId: "58879445454",
+  appId: "1:58879445454:web:df7d825eab569e3e40c39f"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ================= GLOBALS =================
+let topics = [];
 let questions = [];
 let currentIndex = 0;
 let userAnswers = [];
-let marked = [];
 let visited = [];
 let timeLeft = 60;
-let timerInterval;
+let timer;
+
+// ================= LOAD FROM FIREBASE =================
+async function loadData() {
+  let snap = await getDocs(collection(db, "questions"));
+
+  let map = {};
+
+  snap.forEach(doc => {
+    let q = doc.data();
+
+    if (!map[q.topic]) {
+      map[q.topic] = { name: q.topic, tests:{} };
+    }
+
+    if (!map[q.topic].tests[q.test]) {
+      map[q.topic].tests[q.test] = {
+        name: q.test,
+        questions:[]
+      };
+    }
+
+    map[q.topic].tests[q.test].questions.push(q);
+  });
+
+  topics = Object.values(map).map(t => ({
+    name: t.name,
+    tests: Object.values(t.tests)
+  }));
+
+  showTopics();
+}
 
 // ================= HOME =================
 function showTopics() {
   let html = "<h2>Select Topic</h2>";
 
-  topics.forEach((t, i) => {
+  topics.forEach((t,i)=>{
     html += `<button class="nav-btn" onclick="openTopic(${i})">${t.name}</button><br><br>`;
   });
 
@@ -170,60 +127,55 @@ function showTopics() {
 }
 
 // ================= TOPIC =================
-function openTopic(i) {
+window.openTopic = function(i){
   let t = topics[i];
 
-  let html = `<h2>${t.name}</h2>
-  <button class="nav-btn" onclick="showTheory(${i})">📖 Theory</button>
-  <h3>Tests:</h3>`;
+  let html = `<h2>${t.name}</h2><h3>Tests:</h3>`;
 
-  t.tests.forEach((test, j) => {
+  t.tests.forEach((test,j)=>{
     html += `<button class="nav-btn" onclick="startTest(${i},${j})">${test.name}</button><br><br>`;
   });
 
-  html += `<button class="nav-btn" onclick="showTopics()">⬅ Back</button>`;
+  html += `<button onclick="showTopics()">Back</button>`;
 
   document.getElementById("app").innerHTML = html;
 }
 
 // ================= TEST =================
-function startTest(ti, tj) {
-  questions = topics[ti].tests[tj].questions;
+window.startTest = function(i,j){
+  questions = topics[i].tests[j].questions;
 
   currentIndex = 0;
   userAnswers = Array(questions.length).fill(null);
-  marked = Array(questions.length).fill(false);
   visited = Array(questions.length).fill(false);
   timeLeft = 60;
 
   document.getElementById("app").innerHTML = `
-    <div id="topbar">
-      <div>⏱ <span id="timer">60</span>s</div>
-      <button class="nav-btn" onclick="submitTest()">Submit</button>
-    </div>
+  <div id="topbar">
+    <div>⏱ <span id="timer">60</span>s</div>
+    <button onclick="submitTest()">Submit</button>
+  </div>
 
-    <div id="container">
-      <div id="palettePanel"></div>
+  <div id="container">
+    <div id="palettePanel"></div>
+    <div id="questionPanel">
+      <div class="card">
+        <h3 id="question"></h3>
+        <div id="options"></div>
 
-      <div id="questionPanel">
-        <div class="card">
-          <h3 id="question"></h3>
-          <div id="options"></div>
-
-          <button class="nav-btn" onclick="markReview()">⭐ Mark</button>
-          <button class="nav-btn" onclick="prevQuestion()">⬅ Prev</button>
-          <button class="nav-btn" onclick="nextQuestion()">Next ➡</button>
-        </div>
+        <button onclick="prevQ()">Prev</button>
+        <button onclick="nextQ()">Next</button>
       </div>
     </div>
+  </div>
   `;
 
   loadQuestion();
   startTimer();
 }
 
-// ================= LOAD QUESTION =================
-function loadQuestion() {
+// ================= QUESTION =================
+function loadQuestion(){
   visited[currentIndex] = true;
 
   let q = questions[currentIndex];
@@ -232,107 +184,104 @@ function loadQuestion() {
     `Q${currentIndex+1}: ${q.question}`;
 
   let html = "";
-  q.options.forEach(opt => {
-    let selected = userAnswers[currentIndex] === opt ? "#74b9ff" : "";
+
+  q.options.forEach(opt=>{
+    let selected = userAnswers[currentIndex]===opt ? "#74b9ff" : "";
+
     html += `<button class="option-btn" style="background:${selected}"
-      onclick="selectAnswer('${opt}')">${opt}</button>`;
+      onclick="selectAns('${opt}')">${opt}</button>`;
   });
 
   document.getElementById("options").innerHTML = html;
+
   loadPalette();
 }
 
 // ================= SELECT =================
-function selectAnswer(opt) {
+window.selectAns = function(opt){
   userAnswers[currentIndex] = opt;
   loadQuestion();
 }
 
 // ================= NAV =================
-function nextQuestion() {
-  if (currentIndex < questions.length - 1) {
+window.nextQ = function(){
+  if(currentIndex < questions.length-1){
     currentIndex++;
     loadQuestion();
   }
 }
 
-function prevQuestion() {
-  if (currentIndex > 0) {
+window.prevQ = function(){
+  if(currentIndex > 0){
     currentIndex--;
     loadQuestion();
   }
 }
 
-function goToQuestion(i) {
-  currentIndex = i;
-  loadQuestion();
-}
-
-// ================= MARK =================
-function markReview() {
-  marked[currentIndex] = !marked[currentIndex];
-  loadPalette();
-}
-
 // ================= PALETTE =================
-function loadPalette() {
+function loadPalette(){
   let html = "";
 
-  questions.forEach((q, i) => {
+  questions.forEach((q,i)=>{
     let cls = "not-visited";
 
-    if (visited[i] && !userAnswers[i]) cls = "not-answered";
-    if (userAnswers[i]) cls = "answered";
-    if (marked[i]) cls = "marked";
+    if(visited[i] && !userAnswers[i]) cls = "not-answered";
+    if(userAnswers[i]) cls = "answered";
 
-    html += `<button class="palette-btn ${cls}" onclick="goToQuestion(${i})">${i+1}</button>`;
+    html += `<button class="palette-btn ${cls}" onclick="goQ(${i})">${i+1}</button>`;
   });
 
   document.getElementById("palettePanel").innerHTML = html;
 }
 
+window.goQ = function(i){
+  currentIndex = i;
+  loadQuestion();
+}
+
 // ================= RESULT =================
-function submitTest() {
-  clearInterval(timerInterval);
+window.submitTest = function(){
+  clearInterval(timer);
 
   let score = 0;
-  questions.forEach((q, i) => {
-    if (userAnswers[i] === q.answer) score++;
+
+  questions.forEach((q,i)=>{
+    if(userAnswers[i] === q.answer) score++;
   });
 
   let html = `<h2>Score: ${score}/${questions.length}</h2>`;
 
-  questions.forEach((q, i) => {
+  questions.forEach((q,i)=>{
     html += `
       <div class="card">
-      <p><b>${q.question}</b></p>
+      <p>${q.question}</p>
       <p>Your: ${userAnswers[i]}</p>
       <p>Correct: ${q.answer}</p>
       <p>${q.explanation}</p>
       </div><br>`;
   });
 
-  html += `<button class="nav-btn" onclick="showTopics()">🏠 Home</button>`;
+  html += `<button onclick="loadData()">Home</button>`;
 
   document.getElementById("app").innerHTML = html;
 }
 
 // ================= TIMER =================
-function startTimer() {
-  clearInterval(timerInterval);
+function startTimer(){
+  clearInterval(timer);
 
-  timerInterval = setInterval(() => {
+  timer = setInterval(()=>{
     timeLeft--;
     document.getElementById("timer").innerText = timeLeft;
 
-    if (timeLeft <= 0) {
+    if(timeLeft <= 0){
       submitTest();
     }
-  }, 1000);
+  },1000);
 }
 
 // ================= START =================
-showTopics();
+loadData();
 
 </script>
 

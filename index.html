@@ -4,41 +4,72 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body { margin:0; font-family: Arial; background:#f5f6fa; }
+* { box-sizing: border-box; }
 
-#topbar {
-  background:#2d3436; color:white;
-  padding:10px; display:flex; justify-content:space-between;
+body {
+  margin:0;
+  font-family: 'Segoe UI', sans-serif;
+  background:#f1f3f6;
 }
 
-#container { display:flex; height:90vh; }
-
-#palettePanel {
-  width:25%; background:#ecf0f1; padding:10px; overflow-y:auto;
+#header {
+  background:#1e272e;
+  color:white;
+  padding:15px;
+  display:flex;
+  justify-content:space-between;
 }
 
-#questionPanel { width:75%; padding:20px; }
+#app { padding:15px; }
 
 .card {
-  background:white; padding:20px; border-radius:10px;
+  background:white;
+  padding:15px;
+  margin:10px 0;
+  border-radius:10px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
+
+.btn {
+  padding:10px 15px;
+  margin:5px;
+  border:none;
+  border-radius:6px;
+  background:#0984e3;
+  color:white;
+}
+
+.btn-secondary { background:#636e72; }
+.btn-danger { background:#d63031; }
 
 .option-btn {
-  display:block; width:100%;
-  padding:10px; margin:8px 0;
-  border:none; border-radius:6px;
+  display:block;
+  width:100%;
+  padding:12px;
+  margin:8px 0;
+  border:none;
+  border-radius:6px;
   background:#dfe6e9;
+  text-align:left;
 }
 
-.nav-btn {
-  padding:10px; margin:5px;
-  border:none; border-radius:6px;
-  background:#0984e3; color:white;
+#testContainer { display:flex; gap:10px; }
+
+#palettePanel {
+  width:25%;
+  background:#ecf0f1;
+  padding:10px;
+  border-radius:10px;
 }
+
+#questionPanel { width:75%; }
 
 .palette-btn {
-  width:40px; height:40px;
-  margin:4px; border:none;
+  width:40px;
+  height:40px;
+  margin:4px;
+  border:none;
+  border-radius:6px;
 }
 
 .not-visited { background:#b2bec3; }
@@ -46,7 +77,7 @@ body { margin:0; font-family: Arial; background:#f5f6fa; }
 .not-answered { background:#ff7675; }
 
 @media(max-width:768px){
-  #container { flex-direction:column; }
+  #testContainer { flex-direction:column; }
   #palettePanel { width:100%; display:flex; overflow-x:auto; }
   #questionPanel { width:100%; }
 }
@@ -54,6 +85,10 @@ body { margin:0; font-family: Arial; background:#f5f6fa; }
 </head>
 
 <body>
+
+<div id="header">
+  <div>📘 Test Platform</div>
+</div>
 
 <div id="app">Loading...</div>
 
@@ -64,7 +99,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// 🔑 CONFIG
+// CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyDkiFtI0-t4jDWIWhp5gtrFCHSe84CXCHk",
   authDomain: "ro-test-series.firebaseapp.com",
@@ -84,7 +119,7 @@ onAuthStateChanged(auth, (user) => {
   currentUser = user;
 });
 
-// ================= GLOBAL =================
+// ================= DATA =================
 let topics = [];
 let questions = [];
 let currentIndex = 0;
@@ -93,32 +128,38 @@ let visited = [];
 let timer;
 let timeLeft = 60;
 
-// ================= LOAD DATA =================
+// ================= LOAD =================
 async function loadData() {
-  let snap = await getDocs(collection(db, "questions"));
+
+  let qSnap = await getDocs(collection(db, "questions"));
+  let tSnap = await getDocs(collection(db, "theory"));
 
   let map = {};
 
-  snap.forEach(doc => {
+  qSnap.forEach(doc => {
     let q = doc.data();
 
     if (!map[q.topic]) {
-      map[q.topic] = { name: q.topic, tests:{} };
+      map[q.topic] = { name:q.topic, tests:{}, theory:"" };
     }
 
     if (!map[q.topic].tests[q.test]) {
-      map[q.topic].tests[q.test] = {
-        name: q.test,
-        questions:[]
-      };
+      map[q.topic].tests[q.test] = { name:q.test, questions:[] };
     }
 
     map[q.topic].tests[q.test].questions.push(q);
   });
 
+  tSnap.forEach(doc=>{
+    let t = doc.data();
+    if (!map[t.topic]) map[t.topic] = { name:t.topic, tests:{}, theory:"" };
+    map[t.topic].theory = t.content;
+  });
+
   topics = Object.values(map).map(t => ({
-    name: t.name,
-    tests: Object.values(t.tests)
+    name:t.name,
+    theory:t.theory,
+    tests:Object.values(t.tests)
   }));
 
   showTopics();
@@ -126,13 +167,18 @@ async function loadData() {
 
 // ================= HOME =================
 function showTopics() {
-  let html = "<h2>Select Topic</h2>";
+  let html = "<h2>Subjects</h2>";
 
   topics.forEach((t,i)=>{
-    html += `<button class="nav-btn" onclick="openTopic(${i})">${t.name}</button><br><br>`;
+    html += `
+      <div class="card">
+        <h3>${t.name}</h3>
+        <button class="btn" onclick="openTopic(${i})">Open</button>
+      </div>
+    `;
   });
 
-  html += `<button class="nav-btn" onclick="openAdmin()">Admin Panel</button>`;
+  html += `<button class="btn btn-secondary" onclick="openAdmin()">Admin</button>`;
 
   document.getElementById("app").innerHTML = html;
 }
@@ -141,15 +187,34 @@ function showTopics() {
 window.openTopic = function(i){
   let t = topics[i];
 
-  let html = `<h2>${t.name}</h2><h3>Tests:</h3>`;
+  let html = `<h2>${t.name}</h2>
+
+  <div class="card">
+    <button class="btn" onclick="showTheory(${i})">View Theory</button>
+  </div>`;
 
   t.tests.forEach((test,j)=>{
-    html += `<button class="nav-btn" onclick="startTest(${i},${j})">${test.name}</button><br><br>`;
+    html += `
+      <div class="card">
+        <h4>${test.name}</h4>
+        <button class="btn" onclick="startTest(${i},${j})">Start Test</button>
+      </div>`;
   });
 
-  html += `<button onclick="showTopics()">Back</button>`;
+  html += `<button class="btn btn-secondary" onclick="showTopics()">Back</button>`;
 
   document.getElementById("app").innerHTML = html;
+}
+
+// ================= THEORY =================
+window.showTheory = function(i){
+  let t = topics[i];
+
+  document.getElementById("app").innerHTML = `
+    <h2>${t.name} Theory</h2>
+    <div class="card">${t.theory || "No theory yet"}</div>
+    <button class="btn" onclick="openTopic(${i})">Back</button>
+  `;
 }
 
 // ================= TEST =================
@@ -162,46 +227,39 @@ window.startTest = function(i,j){
   timeLeft = 60;
 
   document.getElementById("app").innerHTML = `
-  <div id="topbar">
-    <div>⏱ <span id="timer">60</span>s</div>
-    <button onclick="submitTest()">Submit</button>
-  </div>
+    <div>⏱ <span id="timer">60</span></div>
 
-  <div id="container">
-    <div id="palettePanel"></div>
+    <div id="testContainer">
+      <div id="palettePanel"></div>
 
-    <div id="questionPanel">
-      <div class="card">
-        <h3 id="question"></h3>
-        <div id="options"></div>
-
-        <button onclick="prevQ()">Prev</button>
-        <button onclick="nextQ()">Next</button>
+      <div id="questionPanel">
+        <div class="card">
+          <h3 id="question"></h3>
+          <div id="options"></div>
+          <button class="btn" onclick="prevQ()">Prev</button>
+          <button class="btn" onclick="nextQ()">Next</button>
+          <button class="btn btn-danger" onclick="submitTest()">Submit</button>
+        </div>
       </div>
     </div>
-  </div>
   `;
 
   loadQuestion();
   startTimer();
 }
 
-// ================= QUESTION =================
 function loadQuestion(){
   visited[currentIndex] = true;
 
   let q = questions[currentIndex];
 
-  document.getElementById("question").innerText =
-    `Q${currentIndex+1}: ${q.question}`;
+  document.getElementById("question").innerText = q.question;
 
   let html = "";
 
   q.options.forEach(opt=>{
     let selected = userAnswers[currentIndex]===opt ? "#74b9ff" : "";
-
-    html += `<button class="option-btn" style="background:${selected}"
-      onclick="selectAns('${opt}')">${opt}</button>`;
+    html += `<button class="option-btn" style="background:${selected}" onclick="selectAns('${opt}')">${opt}</button>`;
   });
 
   document.getElementById("options").innerHTML = html;
@@ -209,34 +267,19 @@ function loadQuestion(){
   loadPalette();
 }
 
-// ================= SELECT =================
 window.selectAns = function(opt){
   userAnswers[currentIndex] = opt;
   loadQuestion();
 }
 
-// ================= NAV =================
-window.nextQ = function(){
-  if(currentIndex < questions.length-1){
-    currentIndex++;
-    loadQuestion();
-  }
-}
+window.nextQ = function(){ if(currentIndex < questions.length-1){ currentIndex++; loadQuestion(); } }
+window.prevQ = function(){ if(currentIndex > 0){ currentIndex--; loadQuestion(); } }
 
-window.prevQ = function(){
-  if(currentIndex > 0){
-    currentIndex--;
-    loadQuestion();
-  }
-}
-
-// ================= PALETTE =================
 function loadPalette(){
   let html = "";
 
   questions.forEach((q,i)=>{
     let cls = "not-visited";
-
     if(visited[i] && !userAnswers[i]) cls = "not-answered";
     if(userAnswers[i]) cls = "answered";
 
@@ -246,34 +289,27 @@ function loadPalette(){
   document.getElementById("palettePanel").innerHTML = html;
 }
 
-window.goQ = function(i){
-  currentIndex = i;
-  loadQuestion();
-}
+window.goQ = function(i){ currentIndex = i; loadQuestion(); }
 
 // ================= RESULT =================
 window.submitTest = function(){
   clearInterval(timer);
 
   let score = 0;
-
-  questions.forEach((q,i)=>{
-    if(userAnswers[i] === q.answer) score++;
-  });
+  questions.forEach((q,i)=>{ if(userAnswers[i]===q.answer) score++; });
 
   let html = `<h2>Score: ${score}/${questions.length}</h2>`;
 
   questions.forEach((q,i)=>{
-    html += `
-      <div class="card">
+    html += `<div class="card">
       <p>${q.question}</p>
       <p>Your: ${userAnswers[i]}</p>
       <p>Correct: ${q.answer}</p>
       <p>${q.explanation}</p>
-      </div><br>`;
+    </div>`;
   });
 
-  html += `<button onclick="loadData()">Home</button>`;
+  html += `<button class="btn" onclick="loadData()">Home</button>`;
 
   document.getElementById("app").innerHTML = html;
 }
@@ -281,27 +317,21 @@ window.submitTest = function(){
 // ================= TIMER =================
 function startTimer(){
   clearInterval(timer);
-
   timer = setInterval(()=>{
     timeLeft--;
     document.getElementById("timer").innerText = timeLeft;
-
-    if(timeLeft <= 0){
-      submitTest();
-    }
+    if(timeLeft<=0) submitTest();
   },1000);
 }
 
 // ================= LOGIN =================
-function showLogin() {
+function showLogin(){
   document.getElementById("app").innerHTML = `
     <h2>Admin Login</h2>
-
     <input id="email" placeholder="Email"><br><br>
     <input id="password" type="password" placeholder="Password"><br><br>
-
-    <button onclick="login()">Login</button>
-    <button onclick="showTopics()">Back</button>
+    <button class="btn" onclick="login()">Login</button>
+    <button class="btn" onclick="showTopics()">Back</button>
   `;
 }
 
@@ -310,20 +340,12 @@ window.login = function(){
   let pass = document.getElementById("password").value;
 
   signInWithEmailAndPassword(auth, email, pass)
-    .then(() => {
-      alert("Login success");
-      openAdmin();
-    })
-    .catch(() => {
-      alert("Invalid login");
-    });
+    .then(()=> openAdmin())
+    .catch(()=> alert("Invalid login"));
 }
 
 window.logout = function(){
-  signOut(auth).then(()=>{
-    alert("Logged out");
-    showTopics();
-  });
+  signOut(auth).then(()=> showTopics());
 }
 
 // ================= ADMIN =================
@@ -334,50 +356,60 @@ window.openAdmin = function(){
     return;
   }
 
+  if (currentUser.email !== "YOUR_EMAIL@gmail.com") {
+    alert("Access denied");
+    showTopics();
+    return;
+  }
+
   document.getElementById("app").innerHTML = `
     <h2>Admin Dashboard</h2>
-
     <button onclick="logout()">Logout</button>
 
     <div class="card">
+      <h3>Add Question</h3>
       <input id="topic" placeholder="Topic"><br><br>
       <input id="test" placeholder="Test Name"><br><br>
       <input id="question" placeholder="Question"><br><br>
-
       <input id="opt1" placeholder="Option 1"><br><br>
       <input id="opt2" placeholder="Option 2"><br><br>
       <input id="opt3" placeholder="Option 3"><br><br>
       <input id="opt4" placeholder="Option 4"><br><br>
-
-      <input id="answer" placeholder="Correct Answer"><br><br>
+      <input id="answer" placeholder="Answer"><br><br>
       <input id="explanation" placeholder="Explanation"><br><br>
-
-      <button onclick="saveQuestion()">Save</button>
-      <button onclick="loadData()">Back</button>
+      <button class="btn" onclick="saveQuestion()">Save Question</button>
     </div>
+
+    <div class="card">
+      <h3>Add Theory</h3>
+      <input id="tTopic" placeholder="Topic"><br><br>
+      <textarea id="tContent" placeholder="Theory..." style="width:100%;height:100px"></textarea><br><br>
+      <button class="btn" onclick="saveTheory()">Save Theory</button>
+    </div>
+
+    <button class="btn" onclick="loadData()">Back</button>
   `;
 }
 
 window.saveQuestion = async function(){
-  let topic = document.getElementById("topic").value;
-  let test = document.getElementById("test").value;
-  let question = document.getElementById("question").value;
-
-  let options = [
-    document.getElementById("opt1").value,
-    document.getElementById("opt2").value,
-    document.getElementById("opt3").value,
-    document.getElementById("opt4").value
-  ];
-
-  let answer = document.getElementById("answer").value;
-  let explanation = document.getElementById("explanation").value;
-
   await addDoc(collection(db,"questions"),{
-    topic,test,question,options,answer,explanation
+    topic:topic.value,
+    test:test.value,
+    question:question.value,
+    options:[opt1.value,opt2.value,opt3.value,opt4.value],
+    answer:answer.value,
+    explanation:explanation.value
   });
+  alert("Saved");
+  openAdmin();
+}
 
-  alert("Saved!");
+window.saveTheory = async function(){
+  await addDoc(collection(db,"theory"),{
+    topic:tTopic.value,
+    content:tContent.value
+  });
+  alert("Theory Saved");
   openAdmin();
 }
 

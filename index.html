@@ -10,7 +10,7 @@ body{margin:0;font-family:Arial;background:#f1f3f6;}
 .btn{padding:10px;margin:5px;border:none;border-radius:6px;background:#0984e3;color:white;cursor:pointer;}
 .option-btn{display:block;width:100%;padding:10px;margin:5px 0;border:none;background:#dfe6e9;cursor:pointer;}
 .palette-btn{width:40px;height:40px;margin:3px;border:none;}
-img{max-width:100%;margin-top:10px;}
+textarea{width:100%;height:120px;}
 </style>
 </head>
 
@@ -26,32 +26,23 @@ import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc }
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } 
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } 
-from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDkiFtI0-t4jDWIWhp5gtrFCHSe84CXCHk",
+  apiKey: "YOUR_KEY",
   authDomain: "ro-test-series.firebaseapp.com",
-  projectId: "ro-test-series",
-  storageBucket: "ro-test-series.firebasestorage.app",
-  messagingSenderId: "58879445454",
-  appId: "1:58879445454:web:df7d825eab569e3e40c39f"
+  projectId: "ro-test-series"
 };
 
 const appF = initializeApp(firebaseConfig);
 const db = getFirestore(appF);
 const auth = getAuth(appF);
-const storage = getStorage(appF);
 
 const appDiv = document.getElementById("app");
 
 // ===== GLOBAL =====
 let currentUser=null;
-let topics=[],questions=[];
-let currentIndex=0,userAnswers=[];
-let visited=[],marked=[];
-let timeLeft=300,timerInterval;
-let editId=null,editTheoryId=null;
+let topics=[];
+let editId=null, editTheoryId=null;
 
 // ===== AUTH =====
 onAuthStateChanged(auth,(user)=>{
@@ -61,8 +52,9 @@ onAuthStateChanged(auth,(user)=>{
 
 // ===== LOAD DATA =====
 async function loadData(){
-  let qSnap=await getDocs(collection(db,"questions"));
-  let tSnap=await getDocs(collection(db,"theory"));
+
+  let qSnap = await getDocs(collection(db,"questions"));
+  let tSnap = await getDocs(collection(db,"theory"));
 
   let map={};
 
@@ -77,22 +69,23 @@ async function loadData(){
   });
 
   tSnap.forEach(d=>{
-    let t=d.data();
+    let t=d.data(); t.id=d.id;
+
     if(!map[t.topic]) map[t.topic]={name:t.topic,tests:{},theory:""};
     map[t.topic].theory=t.content;
   });
 
-  topics=Object.values(map).map(t=>({
+  topics = Object.values(map).map(t=>({
     name:t.name,
     theory:t.theory,
     tests:Object.values(t.tests)
   }));
 
-  showTopics();
+  showHome();
 }
 
 // ===== HOME =====
-window.showTopics=function(){
+function showHome(){
   let html="<h2>Subjects</h2>";
 
   topics.forEach((t,i)=>{
@@ -104,7 +97,7 @@ window.showTopics=function(){
 
   html+=`<button class="btn" onclick="openAdmin()">Admin</button>`;
   appDiv.innerHTML=html;
-};
+}
 
 // ===== TOPIC =====
 window.openTopic=function(i){
@@ -114,13 +107,10 @@ window.openTopic=function(i){
   <button class="btn" onclick="showTheory(${i})">Theory</button>`;
 
   t.tests.forEach((test,j)=>{
-    html+=`<div class="card">
-    ${test.name}
-    <button class="btn" onclick="startTest(${i},${j})">Start</button>
-    </div>`;
+    html+=`<div class="card">${test.name}</div>`;
   });
 
-  html+=`<button class="btn" onclick="showTopics()">Back</button>`;
+  html+=`<button class="btn" onclick="showHome()">Back</button>`;
   appDiv.innerHTML=html;
 };
 
@@ -130,141 +120,10 @@ window.showTheory=function(i){
   appDiv.innerHTML=`
   <h2>${t.name}</h2>
   <div class="card">${t.theory||"No theory"}</div>
-  <button class="btn" onclick="openTopic(${i})">Back</button>`;
+  <button onclick="openTopic(${i})">Back</button>`;
 };
 
-// ===== TEST =====
-window.startTest=function(i,j){
-  questions=topics[i].tests[j].questions;
-
-  currentIndex=0;
-  userAnswers=Array(questions.length).fill(null);
-  visited=Array(questions.length).fill(false);
-  marked=Array(questions.length).fill(false);
-  timeLeft=300;
-
-  appDiv.innerHTML=`
-  <h3>Time: <span id="timer">300</span>s</h3>
-
-  <div style="display:flex">
-    <div id="palette" style="width:30%"></div>
-
-    <div style="width:70%">
-      <h3 id="q"></h3>
-      <div id="img"></div>
-      <div id="opt"></div>
-
-      <button onclick="markReview()">Mark</button>
-      <button onclick="prev()">Prev</button>
-      <button onclick="next()">Next</button>
-      <button onclick="submitTest()">Submit</button>
-    </div>
-  </div>`;
-
-  loadQ();
-  startTimer();
-};
-
-// ===== LOAD QUESTION =====
-function loadQ(){
-  visited[currentIndex]=true;
-
-  let q=questions[currentIndex];
-
-  document.getElementById("q").innerText=q.question;
-  document.getElementById("img").innerHTML=
-    q.image?`<img src="${q.image}">`:"";
-
-  let html="";
-  q.options.forEach(opt=>{
-    let sel=userAnswers[currentIndex]===opt
-      ?"background:#0984e3;color:white":"";
-
-    html+=`<button class="option-btn" style="${sel}"
-    onclick="ans('${opt}')">${opt}</button>`;
-  });
-
-  document.getElementById("opt").innerHTML=html;
-
-  loadPalette();
-}
-
-window.ans=function(opt){
-  userAnswers[currentIndex]=opt;
-  loadQ();
-};
-
-// ===== NAV =====
-window.next=function(){if(currentIndex<questions.length-1){currentIndex++;loadQ();}};
-window.prev=function(){if(currentIndex>0){currentIndex--;loadQ();}};
-
-// ===== MARK =====
-window.markReview=function(){
-  marked[currentIndex]=!marked[currentIndex];
-  loadPalette();
-};
-
-// ===== PALETTE =====
-function loadPalette(){
-  let html="";
-  questions.forEach((q,i)=>{
-    let color="#b2bec3";
-
-    if(visited[i]&&!userAnswers[i]) color="#ff7675";
-    if(userAnswers[i]) color="#55efc4";
-    if(marked[i]) color="#ffeaa7";
-
-    html+=`<button class="palette-btn"
-    style="background:${color}"
-    onclick="go(${i})">${i+1}</button>`;
-  });
-
-  document.getElementById("palette").innerHTML=html;
-}
-
-window.go=function(i){currentIndex=i;loadQ();};
-
-// ===== TIMER =====
-function startTimer(){
-  clearInterval(timerInterval);
-  timerInterval=setInterval(()=>{
-    timeLeft--;
-    document.getElementById("timer").innerText=timeLeft;
-
-    if(timeLeft<=0){
-      clearInterval(timerInterval);
-      alert("Time up!");
-      submitTest();
-    }
-  },1000);
-}
-
-// ===== RESULT =====
-window.submitTest=function(){
-  clearInterval(timerInterval);
-
-  let score=0;
-  questions.forEach((q,i)=>{
-    if(userAnswers[i]===q.answer) score++;
-  });
-
-  let html=`<h2>Score: ${score}/${questions.length}</h2>`;
-
-  questions.forEach((q,i)=>{
-    html+=`<div class="card">
-    ${q.question}<br>
-    ${q.image?`<img src="${q.image}">`:''}
-    Your: ${userAnswers[i]}<br>
-    Correct: ${q.answer}<br>
-    ${q.explanation}
-    </div>`;
-  });
-
-  html+=`<button class="btn" onclick="showTopics()">Home</button>`;
-  appDiv.innerHTML=html;
-};
-
-// ===== LOGIN =====
+// ===== ADMIN LOGIN =====
 function showLogin(){
   appDiv.innerHTML=`
   <h2>Admin Login</h2>
@@ -274,80 +133,201 @@ function showLogin(){
 }
 
 window.login=function(){
-  let e=email.value.trim();
-  let p=pass.value.trim();
-
-  signInWithEmailAndPassword(auth,e,p)
+  signInWithEmailAndPassword(auth,email.value,pass.value)
   .then(()=>openAdmin())
   .catch(err=>alert(err.message));
 };
 
-// ===== ADMIN =====
+// ===== ADMIN PANEL =====
 window.openAdmin=function(){
+
   if(!currentUser){showLogin();return;}
 
-  if(currentUser.email!=="hks.sn94@gmail.com"){
+  if(currentUser.email!=="YOUR_EMAIL@gmail.com"){
     alert("Access denied"); return;
   }
 
   appDiv.innerHTML=`
-  <h2>Admin Panel</h2>
 
-  <div class="card">
+  <h2>Admin Dashboard</h2>
+
+  <h3>📘 Theory Section</h3>
+  <input id="tTopic" placeholder="Topic"><br>
+  <textarea id="tContent"></textarea><br>
+  <button onclick="saveTheory()">Save Theory</button>
+
+  <div id="tList"></div>
+
+  <hr>
+
+  <h3>📝 Question Section</h3>
   <input id="topic" placeholder="Topic"><br>
-  <input id="test" placeholder="Test"><br>
+  <input id="test" placeholder="Test Name"><br>
   <input id="question" placeholder="Question"><br>
-  <input type="file" id="imageFile"><br>
+
   <input id="opt1"><br>
   <input id="opt2"><br>
   <input id="opt3"><br>
   <input id="opt4"><br>
-  <input id="answer"><br>
+
+  <input id="answer" placeholder="Correct Answer"><br>
   <input id="explanation"><br>
-  <button onclick="saveQ()">Save</button>
-  </div>
 
-  <div class="card">
-  <input id="tTopic"><br>
-  <textarea id="tContent"></textarea><br>
-  <button onclick="saveTheory()">Save Theory</button>
-  </div>
+  <button onclick="saveQ()">Save Question</button>
 
-  <button onclick="showTopics()">Back</button>`;
+  <h3>Bulk Upload (JSON)</h3>
+  <textarea id="bulk"></textarea><br>
+  <button onclick="bulkUpload()">Upload</button>
+
+  <div id="qList"></div>
+
+  <button onclick="showHome()">Back</button>
+  `;
+
+  loadAdminQ();
+  loadAdminTheory();
 };
+
+// ===== LOAD QUESTIONS =====
+async function loadAdminQ(){
+  let snap=await getDocs(collection(db,"questions"));
+  let html="<h3>All Questions</h3>";
+
+  snap.forEach(d=>{
+    let q=d.data();
+
+    html+=`
+    <div class="card">
+      ${q.question}<br>
+      <small>${q.topic} | ${q.test}</small><br><br>
+      <button onclick="editQ('${d.id}')">Edit</button>
+      <button onclick="delQ('${d.id}')">Delete</button>
+    </div>`;
+  });
+
+  qList.innerHTML=html;
+}
+
+// ===== LOAD THEORY =====
+async function loadAdminTheory(){
+  let snap=await getDocs(collection(db,"theory"));
+  let html="<h3>All Theory</h3>";
+
+  snap.forEach(d=>{
+    let t=d.data();
+
+    html+=`
+    <div class="card">
+      ${t.topic}<br><br>
+      <button onclick="editT('${d.id}')">Edit</button>
+      <button onclick="delT('${d.id}')">Delete</button>
+    </div>`;
+  });
+
+  tList.innerHTML=html;
+}
 
 // ===== SAVE QUESTION =====
 window.saveQ=async function(){
-  let file=imageFile.files[0];
-  let img="";
 
-  if(file){
-    let r=ref(storage,'img/'+Date.now()+file.name);
-    await uploadBytes(r,file);
-    img=await getDownloadURL(r);
-  }
-
-  await addDoc(collection(db,"questions"),{
+  let data={
     topic:topic.value,
     test:test.value,
     question:question.value,
-    image:img,
     options:[opt1.value,opt2.value,opt3.value,opt4.value],
     answer:answer.value,
     explanation:explanation.value
-  });
+  };
 
-  alert("Saved!");
+  if(editId){
+    await updateDoc(doc(db,"questions",editId),data);
+    editId=null;
+  }else{
+    await addDoc(collection(db,"questions"),data);
+  }
+
+  openAdmin();
+};
+
+// ===== EDIT QUESTION =====
+window.editQ=async function(id){
+  let snap=await getDocs(collection(db,"questions"));
+  snap.forEach(d=>{
+    if(d.id===id){
+      let q=d.data();
+
+      topic.value=q.topic;
+      test.value=q.test;
+      question.value=q.question;
+      opt1.value=q.options[0];
+      opt2.value=q.options[1];
+      opt3.value=q.options[2];
+      opt4.value=q.options[3];
+      answer.value=q.answer;
+      explanation.value=q.explanation;
+
+      editId=id;
+    }
+  });
+};
+
+// ===== DELETE QUESTION =====
+window.delQ=async function(id){
+  if(!confirm("Delete?")) return;
+  await deleteDoc(doc(db,"questions",id));
+  openAdmin();
 };
 
 // ===== SAVE THEORY =====
 window.saveTheory=async function(){
-  await addDoc(collection(db,"theory"),{
-    topic:tTopic.value,
-    content:tContent.value
-  });
+  let data={topic:tTopic.value,content:tContent.value};
 
-  alert("Saved!");
+  if(editTheoryId){
+    await updateDoc(doc(db,"theory",editTheoryId),data);
+    editTheoryId=null;
+  }else{
+    await addDoc(collection(db,"theory"),data);
+  }
+
+  openAdmin();
+};
+
+// ===== EDIT THEORY =====
+window.editT=async function(id){
+  let snap=await getDocs(collection(db,"theory"));
+  snap.forEach(d=>{
+    if(d.id===id){
+      let t=d.data();
+      tTopic.value=t.topic;
+      tContent.value=t.content;
+      editTheoryId=id;
+    }
+  });
+};
+
+// ===== DELETE THEORY =====
+window.delT=async function(id){
+  if(!confirm("Delete?")) return;
+  await deleteDoc(doc(db,"theory",id));
+  openAdmin();
+};
+
+// ===== BULK UPLOAD =====
+window.bulkUpload=async function(){
+
+  try{
+    let data = JSON.parse(bulk.value);
+
+    for(let q of data){
+      await addDoc(collection(db,"questions"),q);
+    }
+
+    alert("Uploaded!");
+    openAdmin();
+
+  }catch(e){
+    alert("Invalid JSON");
+  }
 };
 
 </script>

@@ -304,6 +304,38 @@ window.login=function(){
   .catch(err=>alert(err.message));
 };
 
+  // ===== LOAD ADMIN DATA =====
+async function loadAdminData(){
+
+  let qSnap = await getDocs(collection(db,"questions"));
+  let tSnap = await getDocs(collection(db,"theory"));
+
+  let qHTML="";
+  qSnap.forEach((doc,i)=>{
+    let q=doc.data();
+
+    qHTML+=`
+    <div style="border-bottom:1px solid #ccc;padding:5px">
+      <b>${i+1}. ${q.question}</b><br>
+      Topic: ${q.topic} | Test: ${q.test}
+    </div>`;
+  });
+
+  let tHTML="";
+  tSnap.forEach((doc,i)=>{
+    let t=doc.data();
+
+    tHTML+=`
+    <div style="border-bottom:1px solid #ccc;padding:5px">
+      <b>${i+1}. ${t.topic}</b><br>
+      ${t.content.substring(0,100)}...
+    </div>`;
+  });
+
+  document.getElementById("qList").innerHTML = qHTML || "No questions";
+  document.getElementById("tList").innerHTML = tHTML || "No theory";
+};
+
 // ===== ADMIN =====
 window.openAdmin=function(){
 
@@ -342,7 +374,20 @@ window.openAdmin=function(){
     <button onclick="saveTheory()">Save Theory</button>
   </div>
 
-  <button class="btn" onclick="showTopics()">Back</button>`;
+  <div class="card">
+    <h3>All Questions</h3>
+    <div id="qList"></div>
+  </div>
+
+  <div class="card">
+    <h3>All Theory</h3>
+    <div id="tList"></div>
+  </div>
+
+  <button class="btn" onclick="showTopics()">Back</button>
+  `;
+
+  loadAdminData(); // 🔥 IMPORTANT
 };
 
 // ===== SAVE QUESTION =====

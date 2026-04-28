@@ -413,6 +413,7 @@ window.saveQ=async function(){
   });
 
   alert("Saved!");
+loadAdminData(); // ✅ refresh list
 };
 
 // ===== SAVE THEORY =====
@@ -422,7 +423,8 @@ window.saveTheory=async function(){
     content:tContent.value
   });
 
-  alert("Saved!");
+ alert("Saved!");
+loadAdminData(); // ✅ refresh list
 };
 
 </script>

@@ -459,6 +459,36 @@ window.deleteTheory = async function(id){
 
   loadAdminData();
 };
+  // ===== EDIT QUESTION =====
+window.editQuestion = async function(id, oldText){
+
+  let updated = prompt("Edit Question:", oldText);
+
+  if(updated === null || updated === "") return;
+
+  await updateDoc(doc(db, "questions", id), {
+    question: updated
+  });
+
+  alert("Question updated");
+
+  loadAdminData();
+};
+  // ===== EDIT THEORY =====
+window.editTheory = async function(id, oldText){
+
+  let updated = prompt("Edit Theory:", oldText);
+
+  if(updated === null || updated === "") return;
+
+  await updateDoc(doc(db, "theory", id), {
+    content: updated
+  });
+
+  alert("Theory updated");
+
+  loadAdminData();
+};
 </script>
 </body>
 </html>

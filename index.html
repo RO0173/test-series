@@ -50,7 +50,7 @@ const appDiv = document.getElementById("app");
 
 // ===== GLOBAL =====
 let topics=[],questions=[];
-let editId = null;
+let editTheoryId = null;
 let currentIndex=0,userAnswers=[];
 let visited=[],marked=[];
 let timeLeft=300,timerInterval;
@@ -334,7 +334,7 @@ qSnap.forEach((d,i)=>{
     <b>${i+1}. ${t.topic}</b><br>
     ${t.content.substring(0,100)}...<br>
 
-    <button onclick="editTheory('${d.id}','${t.content.replace(/'/g,"&#39;")}')">Edit</button>
+    <button onclick="editTheoryFull('${d.id}')">Edit</button>
     <button onclick="deleteTheory('${d.id}')">Delete</button>
   </div>`;
 });
@@ -448,14 +448,23 @@ loadAdminData(); // ✅ refresh list
 };
 
 // ===== SAVE THEORY =====
-window.saveTheory=async function(){
-  await addDoc(collection(db,"theory"),{
-    topic:tTopic.value,
-    content:tContent.value
-  });
+window.saveTheory = async function(){
 
- alert("Saved!");
-loadAdminData(); // ✅ refresh list
+  let data = {
+    topic: document.getElementById("tTopic").value,
+    content: document.getElementById("tContent").value
+  };
+
+  if(editTheoryId){
+    await updateDoc(doc(db,"theory",editTheoryId), data);
+    alert("Theory Updated!");
+    editTheoryId = null;
+  }else{
+    await addDoc(collection(db,"theory"), data);
+    alert("Theory Saved!");
+  }
+
+  loadAdminData();
 };
 // ===== DELETE QUESTION =====
 window.deleteQuestion = async function(id){
@@ -483,6 +492,30 @@ window.deleteTheory = async function(id){
   alert("Theory deleted");
 
   loadAdminData();
+};
+  // ===== FULL EDIT THEORY =====
+window.editTheoryFull = async function(id){
+
+  let snap = await getDocs(collection(db,"theory"));
+  let data = null;
+
+  snap.forEach(d=>{
+    if(d.id === id){
+      data = d.data();
+    }
+  });
+
+  if(!data){
+    alert("Theory not found");
+    return;
+  }
+
+  document.getElementById("tTopic").value = data.topic;
+  document.getElementById("tContent").value = data.content;
+
+  editTheoryId = id;
+
+  window.scrollTo(0,0);
 };
   // ===== FULL EDIT QUESTION =====
 window.editQuestionFull = async function(id){

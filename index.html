@@ -465,22 +465,6 @@ window.saveQ = async function(){
   loadAdminData();
 };
 
-  // 🔥 EDIT MODE
-  if(editId){
-    await updateDoc(doc(db,"questions",editId), data);
-    alert("Updated!");
-    editId = null;
-  }else{
-    await addDoc(collection(db,"questions"), data);
-    alert("Saved!");
-  }
-
-  loadAdminData();
-};
-
-  alert("Saved!");
-loadAdminData(); // ✅ refresh list
-};
 
 // ===== SAVE THEORY =====
 window.saveTheory = async function(){

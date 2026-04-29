@@ -106,7 +106,11 @@ tSnap.forEach(d=>{
     ? map[t.topic].theory + "<hr>" + block
     : block;
 });
-
+topics = Object.values(map).map(t=>({
+  name: t.name,
+  theory: t.theory,
+  tests: Object.values(t.tests)
+}));
   showTopics();
 }
 
@@ -384,7 +388,8 @@ window.openAdmin=function(){
   <div class="card">
     <h3>Add Theory</h3>
     <input id="tTopic" placeholder="Topic">
-  <input type="file" id="tImage">
+<textarea id="tContent" placeholder="Theory"></textarea>
+<input type="file" id="tImage">
     <button onclick="saveTheory()">Save Theory</button>
   </div>
 
@@ -405,14 +410,11 @@ window.openAdmin=function(){
 };
 
 // ===== SAVE QUESTION =====
-window.saveQ=async function(){
-
 window.saveQ = async function(){
 
   let file = document.getElementById("imageFile").files[0];
   let img = "";
 
-  // upload new image only if selected
   if(file){
     let r = ref(storage,'img/'+Date.now()+file.name);
     await uploadBytes(r,file);
@@ -436,6 +438,18 @@ window.saveQ = async function(){
   if(img){
     data.image = img;
   }
+
+  if(editId){
+    await updateDoc(doc(db,"questions",editId), data);
+    alert("Updated!");
+    editId = null;
+  }else{
+    await addDoc(collection(db,"questions"), data);
+    alert("Saved!");
+  }
+
+  loadAdminData();
+};
 
   // 🔥 EDIT MODE
   if(editId){

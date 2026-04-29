@@ -23,7 +23,7 @@ input,textarea{width:100%;padding:8px;margin:5px 0;}
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc } 
+import { getFirestore, collection, getDocs, addDoc, doc, deleteDoc, updateDoc } 
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } 
@@ -311,26 +311,32 @@ async function loadAdminData(){
   let tSnap = await getDocs(collection(db,"theory"));
 
   let qHTML="";
-  qSnap.forEach((doc,i)=>{
-    let q=doc.data();
+qSnap.forEach((d,i)=>{
+  let q = d.data();
 
-    qHTML+=`
-    <div style="border-bottom:1px solid #ccc;padding:5px">
-      <b>${i+1}. ${q.question}</b><br>
-      Topic: ${q.topic} | Test: ${q.test}
-    </div>`;
-  });
+  qHTML+=`
+  <div style="border-bottom:1px solid #ccc;padding:5px">
+    <b>${i+1}. ${q.question}</b><br>
+    Topic: ${q.topic} | Test: ${q.test}<br>
+
+    <button onclick="editQuestion('${d.id}','${q.question}')">Edit</button>
+    <button onclick="deleteQuestion('${d.id}')">Delete</button>
+  </div>`;
+});
 
   let tHTML="";
-  tSnap.forEach((doc,i)=>{
-    let t=doc.data();
+  tSnap.forEach((d,i)=>{
+  let t = d.data();
 
-    tHTML+=`
-    <div style="border-bottom:1px solid #ccc;padding:5px">
-      <b>${i+1}. ${t.topic}</b><br>
-      ${t.content.substring(0,100)}...
-    </div>`;
-  });
+  tHTML+=`
+  <div style="border-bottom:1px solid #ccc;padding:5px">
+    <b>${i+1}. ${t.topic}</b><br>
+    ${t.content.substring(0,100)}...<br>
+
+    <button onclick="editTheory('${d.id}','${t.content.replace(/'/g,"&#39;")}')">Edit</button>
+    <button onclick="deleteTheory('${d.id}')">Delete</button>
+  </div>`;
+});
 
   document.getElementById("qList").innerHTML = qHTML || "No questions";
   document.getElementById("tList").innerHTML = tHTML || "No theory";
@@ -422,7 +428,34 @@ window.saveTheory=async function(){
     topic:tTopic.value,
     content:tContent.value
   });
+window.deleteQuestion = async function(id){
 
+  let confirmDelete = confirm("Delete this question?");
+
+  if(!confirmDelete){
+    return; // stop if user clicks Cancel
+  }
+
+  await deleteDoc(doc(db, "questions", id));
+
+  alert("Question deleted");
+
+  loadAdminData(); // refresh list
+};
+  window.deleteTheory = async function(id){
+
+  let confirmDelete = confirm("Delete this theory?");
+
+  if(!confirmDelete){
+    return;
+  }
+
+  await deleteDoc(doc(db, "theory", id));
+
+  alert("Theory deleted");
+
+  loadAdminData();
+};
  alert("Saved!");
 loadAdminData(); // ✅ refresh list
 };

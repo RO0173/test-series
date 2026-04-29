@@ -88,24 +88,23 @@ async function loadData(){
 tSnap.forEach(d=>{
   let t = d.data();
 
-  if(!map[t.topic]){
+  if(!map[t.topic]) {
     map[t.topic] = {name:t.topic,tests:{},theory:""};
   }
 
-  // 🔥 SAFE content
-  let content = t.content ? t.content : "";
+  // ✅ SAFE CONTENT (fix)
+  let block = t.content ? t.content : "";
 
-  // 🔥 ADD IMAGE IF EXISTS
+  // ✅ ADD IMAGE
   if(t.image){
-    content += `<br><img src="${t.image}">`;
+    block += `<br><img src="${t.image}">`;
   }
 
-  // 🔥 MERGE PROPERLY
-  if(map[t.topic].theory){
-    map[t.topic].theory += "<hr>" + content;
-  }else{
-    map[t.topic].theory = content;
-  }
+  // ✅ MERGE
+  map[t.topic].theory =
+    map[t.topic].theory
+    ? map[t.topic].theory + "<hr>" + block
+    : block;
 });
 
   showTopics();

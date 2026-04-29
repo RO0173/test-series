@@ -85,28 +85,28 @@ async function loadData(){
   });
 
   // THEORY (FIXED MERGE)
-  tSnap.forEach(d=>{
-    let t = d.data();
+tSnap.forEach(d=>{
+  let t = d.data();
 
-    if(!map[t.topic]) map[t.topic] = {name:t.topic,tests:{},theory:""};
+  if(!map[t.topic]){
+    map[t.topic] = {name:t.topic,tests:{},theory:""};
+  }
 
-    let block = t.content;
+  // 🔥 SAFE content
+  let content = t.content ? t.content : "";
 
-if(t.image){
-  block += `<br><img src="${t.image}">`;
-}
+  // 🔥 ADD IMAGE IF EXISTS
+  if(t.image){
+    content += `<br><img src="${t.image}">`;
+  }
 
-map[t.topic].theory =
-  map[t.topic].theory
-  ? map[t.topic].theory + "<hr>" + block
-  : block;
-  });
-
-  topics = Object.values(map).map(t=>({
-    name:t.name,
-    theory:t.theory,
-    tests:Object.values(t.tests)
-  }));
+  // 🔥 MERGE PROPERLY
+  if(map[t.topic].theory){
+    map[t.topic].theory += "<hr>" + content;
+  }else{
+    map[t.topic].theory = content;
+  }
+});
 
   showTopics();
 }

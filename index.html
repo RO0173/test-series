@@ -90,10 +90,16 @@ async function loadData(){
 
     if(!map[t.topic]) map[t.topic] = {name:t.topic,tests:{},theory:""};
 
-    map[t.topic].theory =
-      map[t.topic].theory
-      ? map[t.topic].theory + "<hr>" + t.content
-      : t.content;
+    let block = t.content;
+
+if(t.image){
+  block += `<br><img src="${t.image}">`;
+}
+
+map[t.topic].theory =
+  map[t.topic].theory
+  ? map[t.topic].theory + "<hr>" + block
+  : block;
   });
 
   topics = Object.values(map).map(t=>({
@@ -334,6 +340,8 @@ qSnap.forEach((d,i)=>{
     <b>${i+1}. ${t.topic}</b><br>
     ${t.content.substring(0,100)}...<br>
 
+    ${t.image ? `<br><img src="${t.image}" width="100">` : ""}
+
     <button onclick="editTheoryFull('${d.id}')">Edit</button>
     <button onclick="deleteTheory('${d.id}')">Delete</button>
   </div>`;
@@ -377,7 +385,7 @@ window.openAdmin=function(){
   <div class="card">
     <h3>Add Theory</h3>
     <input id="tTopic" placeholder="Topic">
-    <textarea id="tContent" placeholder="Theory"></textarea>
+  <input type="file" id="tImage">
     <button onclick="saveTheory()">Save Theory</button>
   </div>
 
@@ -450,16 +458,33 @@ loadAdminData(); // ✅ refresh list
 // ===== SAVE THEORY =====
 window.saveTheory = async function(){
 
+  let file = document.getElementById("tImage").files[0];
+  let img = "";
+
+  // upload image (same like question)
+  if(file){
+    let storageRef = ref(storage, 'theory/' + Date.now() + file.name);
+    await uploadBytes(storageRef, file);
+    img = await getDownloadURL(storageRef);
+  }
+
   let data = {
     topic: document.getElementById("tTopic").value,
     content: document.getElementById("tContent").value
   };
 
+  // add image only if selected
+  if(img){
+    data.image = img;
+  }
+
+  // EDIT MODE
   if(editTheoryId){
     await updateDoc(doc(db,"theory",editTheoryId), data);
     alert("Theory Updated!");
     editTheoryId = null;
-  }else{
+  }
+  else{
     await addDoc(collection(db,"theory"), data);
     alert("Theory Saved!");
   }

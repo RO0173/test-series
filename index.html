@@ -65,53 +65,72 @@ onAuthStateChanged(auth,(user)=>{
 // ===== LOAD DATA (FIXED) =====
 async function loadData(){
 
-  let qSnap = await getDocs(collection(db,"questions"));
-  let tSnap = await getDocs(collection(db,"theory"));
+  try{
 
-  let map = {};
+    let qSnap = await getDocs(collection(db,"questions"));
+    let tSnap = await getDocs(collection(db,"theory"));
 
-  // QUESTIONS
-  qSnap.forEach(d=>{
-    let q = d.data();
-    q.id = d.id;
+    let map = {};
 
-    if(!map[q.topic]) map[q.topic] = {name:q.topic,tests:{},theory:""};
+    // ===== QUESTIONS =====
+    qSnap.forEach(d=>{
+      let q = d.data();
+      q.id = d.id;
 
-    if(!map[q.topic].tests[q.test]){
-      map[q.topic].tests[q.test] = {name:q.test,questions:[]};
-    }
+      if(!q.topic || !q.test) return; // safety
 
-    map[q.topic].tests[q.test].questions.push(q);
-  });
+      if(!map[q.topic]){
+        map[q.topic] = {name:q.topic,tests:{},theory:""};
+      }
 
-  // THEORY (FIXED MERGE)
-tSnap.forEach(d=>{
-  let t = d.data();
+      if(!map[q.topic].tests[q.test]){
+        map[q.topic].tests[q.test] = {name:q.test,questions:[]};
+      }
 
-  if(!map[t.topic]) {
-    map[t.topic] = {name:t.topic,tests:{},theory:""};
+      map[q.topic].tests[q.test].questions.push(q);
+    });
+
+    // ===== THEORY =====
+    tSnap.forEach(d=>{
+      let t = d.data();
+
+      if(!t || !t.topic) return;
+
+      if(!map[t.topic]){
+        map[t.topic] = {name:t.topic,tests:{},theory:""};
+      }
+
+      let block = "";
+
+      if(t.content){
+        block += t.content;
+      }
+
+      if(t.image){
+        block += `<br><img src="${t.image}" style="max-width:100%;">`;
+      }
+
+      if(block){
+        map[t.topic].theory =
+          map[t.topic].theory
+          ? map[t.topic].theory + "<hr>" + block
+          : block;
+      }
+    });
+
+    // ✅ VERY IMPORTANT (you were missing this earlier)
+    topics = Object.values(map).map(t=>({
+      name: t.name,
+      theory: t.theory,
+      tests: Object.values(t.tests)
+    }));
+
+    showTopics();
+
+  }catch(err){
+    console.error("LOAD ERROR:", err);
+    appDiv.innerHTML = "Error loading data";
   }
-
-  // ✅ SAFE CONTENT (fix)
-  let block = t.content ? t.content : "";
-
-  // ✅ ADD IMAGE
-  if(t.image){
-    block += `<br><img src="${t.image}">`;
-  }
-
-  // ✅ MERGE
-  map[t.topic].theory =
-    map[t.topic].theory
-    ? map[t.topic].theory + "<hr>" + block
-    : block;
-});
-topics = Object.values(map).map(t=>({
-  name: t.name,
-  theory: t.theory,
-  tests: Object.values(t.tests)
-}));
-  showTopics();
 }
 
 // ===== HOME =====
@@ -387,7 +406,7 @@ window.openAdmin=function(){
 
   <div class="card">
     <h3>Add Theory</h3>
-    <input id="tTopic" placeholder="Topic">
+   <input id="tTopic" placeholder="Topic">
 <textarea id="tContent" placeholder="Theory"></textarea>
 <input type="file" id="tImage">
     <button onclick="saveTheory()">Save Theory</button>
@@ -422,17 +441,12 @@ window.saveQ = async function(){
   }
 
   let data = {
-    topic: document.getElementById("topic").value,
-    test: document.getElementById("test").value,
-    question: document.getElementById("question").value,
-    options: [
-      opt1.value,
-      opt2.value,
-      opt3.value,
-      opt4.value
-    ],
-    answer: document.getElementById("answer").value,
-    explanation: document.getElementById("explanation").value
+    topic: topic.value,
+    test: test.value,
+    question: question.value,
+    options: [opt1.value,opt2.value,opt3.value,opt4.value],
+    answer: answer.value,
+    explanation: explanation.value
   };
 
   if(img){

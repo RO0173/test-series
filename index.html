@@ -428,27 +428,30 @@ window.saveTheory=async function(){
     topic:tTopic.value,
     content:tContent.value
   });
+
+ alert("Saved!");
+loadAdminData(); // ✅ refresh list
+};
+// ===== DELETE QUESTION =====
 window.deleteQuestion = async function(id){
 
   let confirmDelete = confirm("Delete this question?");
 
-  if(!confirmDelete){
-    return; // stop if user clicks Cancel
-  }
+  if(!confirmDelete) return;
 
   await deleteDoc(doc(db, "questions", id));
 
   alert("Question deleted");
 
-  loadAdminData(); // refresh list
+  loadAdminData();
 };
-  window.deleteTheory = async function(id){
+
+// ===== DELETE THEORY =====
+window.deleteTheory = async function(id){
 
   let confirmDelete = confirm("Delete this theory?");
 
-  if(!confirmDelete){
-    return;
-  }
+  if(!confirmDelete) return;
 
   await deleteDoc(doc(db, "theory", id));
 
@@ -456,10 +459,6 @@ window.deleteQuestion = async function(id){
 
   loadAdminData();
 };
- alert("Saved!");
-loadAdminData(); // ✅ refresh list
-};
-
 </script>
 </body>
 </html>

@@ -50,6 +50,7 @@ const appDiv = document.getElementById("app");
 
 // ===== GLOBAL =====
 let topics=[],questions=[];
+let editId = null;
 let currentIndex=0,userAnswers=[];
 let visited=[],marked=[];
 let timeLeft=300,timerInterval;
@@ -319,7 +320,7 @@ qSnap.forEach((d,i)=>{
     <b>${i+1}. ${q.question}</b><br>
     Topic: ${q.topic} | Test: ${q.test}<br>
 
-    <button onclick="editQuestion('${d.id}','${q.question}')">Edit</button>
+    <button onclick="editQuestionFull('${d.id}')">Edit</button>
     <button onclick="deleteQuestion('${d.id}')">Delete</button>
   </div>`;
 });
@@ -399,24 +400,48 @@ window.openAdmin=function(){
 // ===== SAVE QUESTION =====
 window.saveQ=async function(){
 
-  let file=document.getElementById("imageFile").files[0];
-  let img="";
+window.saveQ = async function(){
 
+  let file = document.getElementById("imageFile").files[0];
+  let img = "";
+
+  // upload new image only if selected
   if(file){
-    let r=ref(storage,'img/'+Date.now()+file.name);
+    let r = ref(storage,'img/'+Date.now()+file.name);
     await uploadBytes(r,file);
-    img=await getDownloadURL(r);
+    img = await getDownloadURL(r);
   }
 
-  await addDoc(collection(db,"questions"),{
-    topic:topic.value,
-    test:test.value,
-    question:question.value,
-    image:img,
-    options:[opt1.value,opt2.value,opt3.value,opt4.value],
-    answer:answer.value,
-    explanation:explanation.value
-  });
+  let data = {
+    topic: document.getElementById("topic").value,
+    test: document.getElementById("test").value,
+    question: document.getElementById("question").value,
+    options: [
+      opt1.value,
+      opt2.value,
+      opt3.value,
+      opt4.value
+    ],
+    answer: document.getElementById("answer").value,
+    explanation: document.getElementById("explanation").value
+  };
+
+  if(img){
+    data.image = img;
+  }
+
+  // 🔥 EDIT MODE
+  if(editId){
+    await updateDoc(doc(db,"questions",editId), data);
+    alert("Updated!");
+    editId = null;
+  }else{
+    await addDoc(collection(db,"questions"), data);
+    alert("Saved!");
+  }
+
+  loadAdminData();
+};
 
   alert("Saved!");
 loadAdminData(); // ✅ refresh list
@@ -458,6 +483,40 @@ window.deleteTheory = async function(id){
   alert("Theory deleted");
 
   loadAdminData();
+};
+  // ===== FULL EDIT QUESTION =====
+window.editQuestionFull = async function(id){
+
+  let snap = await getDocs(collection(db,"questions"));
+  let data = null;
+
+  snap.forEach(d=>{
+    if(d.id === id){
+      data = d.data();
+    }
+  });
+
+  if(!data){
+    alert("Question not found");
+    return;
+  }
+
+  // Fill form
+  document.getElementById("topic").value = data.topic;
+  document.getElementById("test").value = data.test;
+  document.getElementById("question").value = data.question;
+
+  document.getElementById("opt1").value = data.options[0];
+  document.getElementById("opt2").value = data.options[1];
+  document.getElementById("opt3").value = data.options[2];
+  document.getElementById("opt4").value = data.options[3];
+
+  document.getElementById("answer").value = data.answer;
+  document.getElementById("explanation").value = data.explanation;
+
+  editId = id; // 🔥 important
+
+  window.scrollTo(0,0); // scroll to form
 };
   // ===== EDIT QUESTION =====
 window.editQuestion = async function(id, oldText){

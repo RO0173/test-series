@@ -431,6 +431,24 @@ window.openAdmin=function(){
 // ===== SAVE QUESTION =====
 window.saveQ = async function(){
 
+  let topicVal = document.getElementById("topic").value;
+  let testVal = document.getElementById("test").value;
+  let questionVal = document.getElementById("question").value;
+
+  let opt1Val = document.getElementById("opt1").value;
+  let opt2Val = document.getElementById("opt2").value;
+  let opt3Val = document.getElementById("opt3").value;
+  let opt4Val = document.getElementById("opt4").value;
+
+  let answerVal = document.getElementById("answer").value;
+  let explanationVal = document.getElementById("explanation").value;
+
+  // 🔴 VALIDATION (add this!)
+  if(!topicVal || !testVal || !questionVal){
+    alert("Please fill all required fields");
+    return;
+  }
+
   let file = document.getElementById("imageFile").files[0];
   let img = "";
 
@@ -441,13 +459,23 @@ window.saveQ = async function(){
   }
 
   let data = {
-    topic: topic.value,
-    test: test.value,
-    question: question.value,
-    options: [opt1.value,opt2.value,opt3.value,opt4.value],
-    answer: answer.value,
-    explanation: explanation.value
+    topic: topicVal,
+    test: testVal,
+    question: questionVal,
+    options: [opt1Val,opt2Val,opt3Val,opt4Val],
+    answer: answerVal,
+    explanation: explanationVal
   };
+
+  // 🔥 KEEP OLD IMAGE DURING EDIT
+  if(editId){
+    let snap = await getDoc(doc(db,"questions",editId));
+    let old = snap.data();
+
+    if(old.image && !img){
+      data.image = old.image;
+    }
+  }
 
   if(img){
     data.image = img;
@@ -463,8 +491,8 @@ window.saveQ = async function(){
   }
 
   loadAdminData();
+  loadData(); // 🔥 IMPORTANT
 };
-
 
 // ===== SAVE THEORY =====
 window.saveTheory = async function(){

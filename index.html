@@ -299,20 +299,35 @@ window.submitTest=function(){
     if(userAnswers[i]===q.answer) score++;
   });
 
-  let html=`<h2>Score: ${score}/${questions.length}</h2>`;
+  let percent = Math.round((score/questions.length)*100);
+
+  let html=`
+  <h2>Score: ${score}/${questions.length}</h2>
+  <h3>Percentage: ${percent}%</h3>
+  `;
 
   questions.forEach((q,i)=>{
+
+    let correct = userAnswers[i]===q.answer;
+
     html+=`
-    <div class="card">
+    <div class="card" style="border-left:5px solid ${correct ? 'green':'red'}">
       ${q.question}<br>
       ${q.image?`<img src="${q.image}">`:''}
-      <br><b>Your:</b> ${userAnswers[i]}<br>
-      <b>Correct:</b> ${q.answer}<br>
+
+      <br><b>Your:</b> 
+      <span style="color:${correct?'green':'red'}">
+        ${userAnswers[i] || "Not Answered"}
+      </span>
+
+      <br><b>Correct:</b> ${q.answer}
+
       <p>${q.explanation||""}</p>
     </div>`;
   });
 
   html+=`<button class="btn" onclick="showTopics()">Home</button>`;
+
   appDiv.innerHTML=html;
 };
 

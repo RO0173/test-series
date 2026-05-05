@@ -23,7 +23,7 @@ input,textarea{width:100%;padding:8px;margin:5px 0;}
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, doc, deleteDoc, updateDoc } 
+import { getFirestore, collection, getDocs, getDoc, addDoc, doc, deleteDoc, updateDoc }  
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } 
@@ -36,7 +36,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyDkiFtI0-t4jDWIWhp5gtrFCHSe84CXCHk",
   authDomain: "ro-test-series.firebaseapp.com",
   projectId: "ro-test-series",
-  storageBucket: "ro-test-series.firebasestorage.app",
+  storageBucket: "ro-test-series.appspot.com",
   messagingSenderId: "58879445454",
   appId: "1:58879445454:web:df7d825eab569e3e40c39f"
 };
@@ -51,6 +51,7 @@ const appDiv = document.getElementById("app");
 // ===== GLOBAL =====
 let topics=[],questions=[];
 let editTheoryId = null;
+let editId = null;
 let currentIndex=0,userAnswers=[];
 let visited=[],marked=[];
 let timeLeft=300,timerInterval;

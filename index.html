@@ -108,7 +108,10 @@ async function loadData(){
       }
 
       if(t.image){
-        block += `<br><img src="${t.image}" style="max-width:100%;">`;
+       block += `<br><br>
+<img src="${t.image}" 
+style="max-width:100%;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1)">
+<br>`;
       }
 
       if(block){
@@ -174,10 +177,51 @@ window.showTheory=function(i){
   let t=topics[i];
 
   appDiv.innerHTML=`
-  <h2>${t.name}</h2>
-  <div class="card">${t.theory||"No theory"}</div>
-  <button class="btn" onclick="openTopic(${i})">Back</button>`;
+  <div style="max-width:800px;margin:auto">
+
+    <h2 style="margin-bottom:10px">${t.name}</h2>
+
+    <div class="card" style="
+      line-height:1.8;
+      font-size:16px;
+      padding:20px;
+    ">
+      ${formatTheory(t.theory) || "No theory"}
+    </div>
+
+    <button class="btn" onclick="openTopic(${i})">Back</button>
+  </div>`;
 };
+
+  function formatTheory(content){
+
+  if(!content) return "";
+
+  // 🔹 Headings (## Heading)
+  content = content.replace(/^## (.*$)/gim,
+    '<h3 style="margin-top:15px;color:#2d3436">$1</h3>');
+
+  // 🔹 Bold (**text**)
+  content = content.replace(/\*\*(.*?)\*\*/g,
+    '<b>$1</b>');
+
+  // 🔹 Bullet points (- text)
+  content = content.replace(/^- (.*$)/gim,
+    '<li>$1</li>');
+
+  // wrap list
+  content = content.replace(/(<li>.*<\/li>)/gim,
+    '<ul style="padding-left:20px">$1</ul>');
+
+  // 🔹 Important line (!! text)
+  content = content.replace(/^!! (.*$)/gim,
+    '<div style="background:#ffeaa7;padding:10px;border-radius:6px;margin:10px 0"><b>$1</b></div>');
+
+  // 🔹 Line breaks
+  content = content.replace(/\n/g,"<br>");
+
+  return content;
+}
 
 // ===== TEST =====
 window.startTest=function(i,j){

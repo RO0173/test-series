@@ -560,24 +560,34 @@ window.saveTheory = async function(){
   let file = document.getElementById("tImage").files[0];
   let img = "";
 
-  // upload image (same like question)
   if(file){
-    let storageRef = ref(storage, 'theory/' + Date.now() + file.name);
+    let storageRef = ref(storage, 'theory/' + Date.now() + "_" + file.name);
     await uploadBytes(storageRef, file);
     img = await getDownloadURL(storageRef);
   }
 
+  let topicVal = document.getElementById("tTopic").value;
+  let contentVal = document.getElementById("tContent").value;
+
   let data = {
-    topic: document.getElementById("tTopic").value,
-    content: document.getElementById("tContent").value
+    topic: topicVal,
+    content: contentVal
   };
 
-  // add image only if selected
+  // 🔥 KEEP OLD IMAGE DURING EDIT
+  if(editTheoryId){
+    let snap = await getDoc(doc(db,"theory",editTheoryId));
+    let old = snap.data();
+
+    if(old.image && !img){
+      data.image = old.image;
+    }
+  }
+
   if(img){
     data.image = img;
   }
 
-  // EDIT MODE
   if(editTheoryId){
     await updateDoc(doc(db,"theory",editTheoryId), data);
     alert("Theory Updated!");
@@ -589,7 +599,9 @@ window.saveTheory = async function(){
   }
 
   loadAdminData();
+  loadData(); // 🔥 FIX
 };
+  
 // ===== DELETE QUESTION =====
 window.deleteQuestion = async function(id){
 

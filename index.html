@@ -272,36 +272,7 @@ function loadQ(){
 
   let q=questions[currentIndex];
 
-  document.getElementById("q").innerHTML = `
-
-<div style="
-  background:white;
-  padding:20px;
-  border-radius:14px;
-  box-shadow:0 2px 12px rgba(0,0,0,0.08);
-  line-height:1.9;
-  font-size:18px;
-  color:#2d3436;
-">
-
-  <div style="
-    font-size:14px;
-    color:#636e72;
-    margin-bottom:12px;
-    font-weight:bold;
-  ">
-    Question ${currentIndex + 1} / ${questions.length}
-  </div>
-
-  <div style="
-    font-size:19px;
-    font-weight:600;
-  ">
-    ${formatText(q.question)}
-  </div>
-
-</div>
-`;
+ document.getElementById("q").innerText=q.question;
   document.getElementById("img").innerHTML = q.image ? `<img src="${q.image}">` : "";
 
   let html="";

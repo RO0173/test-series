@@ -91,10 +91,21 @@ async function loadData(){
 
       if(!q.topic || !q.test) return; // safety
 
-      if(!map[q.topic]){
-        map[q.topic] = {name:q.topic,tests:{},theory:""};
-      }
+     if(!map[q.topic]){
 
+  map[q.topic] = {
+
+    name:q.topic,
+
+    category:q.category || "Technical",
+
+    subject:q.subject || "General",
+
+    tests:{},
+
+    theory:""
+  };
+}
       if(!map[q.topic].tests[q.test]){
         map[q.topic].tests[q.test] = {name:q.test,questions:[]};
       }
@@ -108,9 +119,21 @@ async function loadData(){
 
       if(!t || !t.topic) return;
 
-      if(!map[t.topic]){
-        map[t.topic] = {name:t.topic,tests:{},theory:""};
-      }
+     if(!map[t.topic]){
+
+  map[t.topic] = {
+
+    name:t.topic,
+
+    category:t.category || "Technical",
+
+    subject:t.subject || "General",
+
+    tests:{},
+
+    theory:""
+  };
+}
 
       let block = "";
 
@@ -134,13 +157,20 @@ style="max-width:100%;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1)">
     });
 
     // ✅ VERY IMPORTANT (you were missing this earlier)
-    topics = Object.values(map).map(t=>({
-      name: t.name,
-      theory: t.theory,
-      tests: Object.values(t.tests)
-    }));
+   topics = Object.values(map).map(t=>({
 
-    showTopics();
+  name: t.name,
+
+  category: t.category,
+
+  subject: t.subject,
+
+  theory: t.theory,
+
+  tests: Object.values(t.tests)
+}));
+
+    showHome();
 
   }catch(err){
     console.error("LOAD ERROR:", err);
@@ -149,20 +179,184 @@ style="max-width:100%;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1)">
 }
 
 // ===== HOME =====
-window.showTopics=function(){
-  let html="<h2>Subjects</h2>";
+window.showHome=function(){
 
-  topics.forEach((t,i)=>{
+  appDiv.innerHTML=`
+
+  <div style="max-width:1100px;margin:auto">
+
+    <div style="
+      background:linear-gradient(135deg,#0984e3,#6c5ce7);
+      color:white;
+      padding:45px 25px;
+      border-radius:20px;
+      text-align:center;
+      margin-bottom:30px;
+    ">
+
+      <h1>📘 Test Platform</h1>
+
+      <p>
+        Technical & Non Technical Test Series
+      </p>
+
+    </div>
+
+    <div style="
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+      gap:25px;
+    ">
+
+      <div class="card" style="text-align:center">
+
+        <h2>⚡ Technical</h2>
+
+        <p>
+          Electrical, Electronics,
+          Power System etc.
+        </p>
+
+        <button class="btn"
+        onclick="showSubjects('Technical')">
+
+          Open
+
+        </button>
+
+      </div>
+
+      <div class="card" style="text-align:center">
+
+        <h2>📚 Non Technical</h2>
+
+        <p>
+          Maths, Reasoning,
+          GK, English etc.
+        </p>
+
+        <button class="btn"
+        onclick="showSubjects('Non Technical')">
+
+          Open
+
+        </button>
+
+      </div>
+
+    </div>
+
+    <div style="margin-top:30px;text-align:center">
+
+      <button class="btn"
+      onclick="openAdmin()">
+
+        Admin
+
+      </button>
+
+    </div>
+
+  </div>
+  `;
+};
+
+// ===== SUBJECTS =====
+window.showSubjects=function(category){
+
+  let subjects=[...new Set(
+
+    topics
+    .filter(t=>t.category===category)
+    .map(t=>t.subject)
+
+  )];
+
+  let html=`<h2>${category} Subjects</h2>`;
+
+  subjects.forEach(sub=>{
+
     html+=`
+
     <div class="card">
-      <h3>${t.name}</h3>
-      <button class="btn" onclick="openTopic(${i})">Open</button>
-    </div>`;
+
+      <h3>${sub}</h3>
+
+      <button class="btn"
+      onclick="showTopicsBySubject('${category}','${sub}')">
+
+        Open
+
+      </button>
+
+    </div>
+    `;
   });
 
-  html+=`<button class="btn" onclick="openAdmin()">Admin</button>`;
+  html+=`
+  <button class="btn"
+  onclick="showHome()">
+
+    Home
+
+  </button>
+  `;
+
   appDiv.innerHTML=html;
 };
+
+// ===== TOPICS =====
+window.showTopicsBySubject=function(category,subject){
+
+  let filtered=topics.filter(t=>
+
+    t.category===category &&
+
+    t.subject===subject
+
+  );
+
+  let html=`<h2>${subject}</h2>`;
+
+  filtered.forEach((t,i)=>{
+
+    let realIndex=topics.findIndex(x=>
+
+      x.name===t.name &&
+
+      x.subject===subject
+
+    );
+
+    html+=`
+
+    <div class="card">
+
+      <h3>${t.name}</h3>
+
+      <button class="btn"
+      onclick="openTopic(${realIndex})">
+
+        Open Topic
+
+      </button>
+
+    </div>
+    `;
+  });
+
+  html+=`
+  <button class="btn"
+  onclick="showSubjects('${category}')">
+
+    Back
+
+  </button>
+  `;
+
+  appDiv.innerHTML=html;
+};
+
 
 // ===== TOPIC =====
 window.openTopic=function(i){
@@ -418,7 +612,10 @@ qSnap.forEach((d,i)=>{
   qHTML+=`
   <div style="border-bottom:1px solid #ccc;padding:5px">
     <b>${i+1}. ${q.question}</b><br>
-    Topic: ${q.topic} | Test: ${q.test}<br>
+   Category: ${q.category || ""} |
+Subject: ${q.subject || ""} |
+Topic: ${q.topic} |
+Test: ${q.test}<br>
 
     <button onclick="editQuestionFull('${d.id}')">Edit</button>
     <button onclick="deleteQuestion('${d.id}')">Delete</button>
@@ -431,7 +628,11 @@ qSnap.forEach((d,i)=>{
 
   tHTML+=`
   <div style="border-bottom:1px solid #ccc;padding:5px">
-    <b>${i+1}. ${t.topic}</b><br>
+   <b>${i+1}. ${t.topic}</b><br>
+
+Category: ${t.category || ""} |
+
+Subject: ${t.subject || ""}<br>
     ${t.content.substring(0,100)}...<br>
 
     ${t.image ? `<br><img src="${t.image}" width="100">` : ""}
@@ -463,7 +664,11 @@ window.openAdmin=function(){
 
   <div class="card">
     <h3>Add Question</h3>
-    <input id="topic" placeholder="Topic">
+   <input id="category" placeholder="Category (Technical / Non Technical)">
+
+<input id="subject" placeholder="Subject">
+
+<input id="topic" placeholder="Topic">
     <input id="test" placeholder="Test">
     <input id="question" placeholder="Question">
     <input type="file" id="imageFile">
@@ -478,7 +683,11 @@ window.openAdmin=function(){
 
   <div class="card">
     <h3>Add Theory</h3>
-   <input id="tTopic" placeholder="Topic">
+  <input id="tCategory" placeholder="Category">
+
+<input id="tSubject" placeholder="Subject">
+
+<input id="tTopic" placeholder="Topic">
 <textarea id="tContent" placeholder="Theory"></textarea>
 <input type="file" id="tImage">
     <button onclick="saveTheory()">Save Theory</button>
@@ -503,7 +712,11 @@ window.openAdmin=function(){
 // ===== SAVE QUESTION =====
 window.saveQ = async function(){
 
-  let topicVal = document.getElementById("topic").value;
+ let categoryVal =
+document.getElementById("category").value;
+
+let subjectVal =
+document.getElementById("subject").value;
   let testVal = document.getElementById("test").value;
   let questionVal = document.getElementById("question").value;
 
@@ -531,13 +744,23 @@ window.saveQ = async function(){
   }
 
   let data = {
-    topic: topicVal,
-    test: testVal,
-    question: questionVal,
-    options: [opt1Val,opt2Val,opt3Val,opt4Val],
-    answer: answerVal,
-    explanation: explanationVal
-  };
+
+  category: categoryVal,
+
+  subject: subjectVal,
+
+  topic: topicVal,
+
+  test: testVal,
+
+  question: questionVal,
+
+  options: [opt1Val,opt2Val,opt3Val,opt4Val],
+
+  answer: answerVal,
+
+  explanation: explanationVal
+};
 
   // 🔥 KEEP OLD IMAGE DURING EDIT
   if(editId){
@@ -596,13 +819,23 @@ if(file){
     alert("Upload failed: " + err.message);
   }
 }
-  let topicVal = document.getElementById("tTopic").value;
+  let categoryVal =
+document.getElementById("tCategory").value;
+
+let subjectVal =
+document.getElementById("tSubject").value;
   let contentVal = document.getElementById("tContent").value;
 
   let data = {
-    topic: topicVal,
-    content: contentVal
-  };
+
+  category: categoryVal,
+
+  subject: subjectVal,
+
+  topic: topicVal,
+
+  content: contentVal
+};
 
   // 🔥 KEEP OLD IMAGE DURING EDIT
   if(editTheoryId){
@@ -676,7 +909,11 @@ window.editTheoryFull = async function(id){
     return;
   }
 
-  document.getElementById("tTopic").value = data.topic;
+document.getElementById("tCategory").value =
+data.category || "";
+
+document.getElementById("tSubject").value =
+data.subject || "";
   document.getElementById("tContent").value = data.content;
 
   editTheoryId = id;
@@ -701,7 +938,11 @@ window.editQuestionFull = async function(id){
   }
 
   // Fill form
-  document.getElementById("topic").value = data.topic;
+ document.getElementById("category").value =
+data.category || "";
+
+document.getElementById("subject").value =
+data.subject || "";
   document.getElementById("test").value = data.test;
   document.getElementById("question").value = data.question;
 

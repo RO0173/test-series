@@ -308,27 +308,8 @@ function loadQ(){
   q.options.forEach(opt=>{
     let sel=userAnswers[currentIndex]===opt ? "background:#0984e3;color:white" : "";
 
-   html+=`
-
-<button class="option-btn"
-
-style="
-  ${sel};
-  text-align:left;
-  padding:14px;
-  border-radius:10px;
-  margin:10px 0;
-  font-size:16px;
-  line-height:1.7;
-  transition:0.2s;
-"
-
-onclick="ans('${opt}')">
-
-  ${formatText(opt)}
-
-</button>
-`;
+html+=`
+<button class="option-btn" style="${sel}" onclick="ans('${opt}')">${opt}</button>`;
     
   });
 

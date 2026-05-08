@@ -17,8 +17,19 @@ input,textarea{width:100%;padding:8px;margin:5px 0;}
 </head>
 
 <body>
-<div id="header">📘 Test Platform</div>
+<div id="header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+
+  <div>📘 Test Platform</div>
+
+  <div>
+    <button class="btn" onclick="translateHindi()">🇮🇳 Hindi</button>
+
+    <button class="btn" onclick="translateEnglish()">🇬🇧 English</button>
+  </div>
+
+</div>
 <div id="app">Loading...</div>
+<div id="google_translate_element" style="display:none"></div>
 
 <script type="module">
 
@@ -735,6 +746,74 @@ window.editTheory = async function(id, oldText){
 
   loadAdminData();
 };
+ // ===== LANGUAGE TRANSLATION =====
+
+window.translateHindi = function(){
+
+  localStorage.setItem("siteLang","hi");
+
+  loadTranslator();
+};
+
+window.translateEnglish = function(){
+
+  localStorage.setItem("siteLang","en");
+
+  location.reload();
+};
+
+function loadTranslator(){
+
+  let lang = localStorage.getItem("siteLang");
+
+  if(lang !== "hi") return;
+
+  // prevent duplicate script
+  if(document.getElementById("googleTranslateScript")){
+
+    autoTranslate();
+    return;
+  }
+
+  let s = document.createElement("script");
+
+  s.id = "googleTranslateScript";
+
+  s.src =
+  "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+
+  document.body.appendChild(s);
+
+  window.googleTranslateElementInit = function(){
+
+    new google.translate.TranslateElement(
+      {
+        pageLanguage:'en',
+        includedLanguages:'hi',
+        autoDisplay:false
+      },
+      'google_translate_element'
+    );
+
+    setTimeout(autoTranslate,2000);
+  };
+}
+
+function autoTranslate(){
+
+  let select = document.querySelector(".goog-te-combo");
+
+  if(select){
+
+    select.value = "hi";
+
+    select.dispatchEvent(new Event("change"));
+  }
+}
+
+// Auto load saved language
+setTimeout(loadTranslator,1000);
+  
 </script>
 </body>
 </html>

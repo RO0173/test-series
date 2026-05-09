@@ -367,13 +367,32 @@ window.openTopic=function(i){
 
   t.tests.forEach((test,j)=>{
     html+=`
-    <div class="card">
-      ${test.name}
-      <button class="btn" onclick="startTest(${i},${j})">Start</button>
-    </div>`;
+   <div class="card" style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+flex-wrap:wrap;
+gap:10px;
+">
+
+  <div>
+    <h3 style="margin:0">${test.name}</h3>
+    <small>
+      ${test.questions.length} Questions
+    </small>
+  </div>
+
+  <button class="btn"
+  onclick="startTest(${i},${j})">
+
+    Start Test
+
+  </button>
+
+</div>`;
   });
 
-  html+=`<button class="btn" onclick="showTopics()">Back</button>`;
+  html+=`<button class="btn" onclick="showHome()">Back</button>`;
   appDiv.innerHTML=html;
 };
 
@@ -415,9 +434,9 @@ window.showTheory=function(i){
     '<li>$1</li>');
 
   // wrap list
-  content = content.replace(/(<li>.*<\/li>)/gim,
-    '<ul style="padding-left:20px">$1</ul>');
-
+ if(content.includes("<li>")){
+  content = `<ul style="padding-left:20px">${content}</ul>`;
+}
   // 🔹 Important line (!! text)
   content = content.replace(/^!! (.*$)/gim,
     '<div style="background:#ffeaa7;padding:10px;border-radius:6px;margin:10px 0"><b>$1</b></div>');
@@ -549,7 +568,9 @@ window.submitTest = async function(){
     if(userAnswers[i]===q.answer) score++;
   });
 
-  let percent = Math.round((score/questions.length)*100);
+ let percent = questions.length
+? Math.round((score/questions.length)*100)
+: 0;
 
   let html=`
   <h2>Score: ${score}/${questions.length}</h2>
@@ -576,7 +597,7 @@ window.submitTest = async function(){
     </div>`;
   });
 
-  html+=`<button class="btn" onclick="showTopics()">Home</button>`;
+  html+=`<button class="btn" onclick="showHome()">Home</button>`;
 
   appDiv.innerHTML=html;
 };
@@ -678,7 +699,7 @@ window.openAdmin=function(){
     <input id="opt4" placeholder="Opt4">
     <input id="answer" placeholder="Answer">
     <input id="explanation" placeholder="Explanation">
-    <button onclick="saveQ()">Save Question</button>
+   <button id="qBtn" onclick="saveQ()">Save Question</button>
   </div>
 
   <div class="card">
@@ -690,7 +711,7 @@ window.openAdmin=function(){
 <input id="tTopic" placeholder="Topic">
 <textarea id="tContent" placeholder="Theory"></textarea>
 <input type="file" id="tImage">
-    <button onclick="saveTheory()">Save Theory</button>
+  <button id="tBtn" onclick="saveTheory()">Save Theory</button>
   </div>
 
   <div class="card">
@@ -703,7 +724,7 @@ window.openAdmin=function(){
     <div id="tList"></div>
   </div>
 
-  <button class="btn" onclick="showTopics()">Back</button>
+  <button class="btn" onclick="showHome()">Back</button>
   `;
 
   loadAdminData(); // 🔥 IMPORTANT
@@ -717,6 +738,9 @@ document.getElementById("category").value;
 
 let subjectVal =
 document.getElementById("subject").value;
+  
+let topicVal =
+document.getElementById("topic").value;
   let testVal = document.getElementById("test").value;
   let questionVal = document.getElementById("question").value;
 
@@ -729,10 +753,21 @@ document.getElementById("subject").value;
   let explanationVal = document.getElementById("explanation").value;
 
   // 🔴 VALIDATION (add this!)
-  if(!topicVal || !testVal || !questionVal){
-    alert("Please fill all required fields");
-    return;
-  }
+ if(
+  !categoryVal ||
+  !subjectVal ||
+  !topicVal ||
+  !testVal ||
+  !questionVal ||
+  !opt1Val ||
+  !opt2Val ||
+  !opt3Val ||
+  !opt4Val ||
+  !answerVal
+){
+  alert("Please fill all required fields");
+  return;
+}
 
   let file = document.getElementById("imageFile").files[0];
   let img = "";
@@ -780,6 +815,8 @@ document.getElementById("subject").value;
     await updateDoc(doc(db,"questions",editId), data);
     alert("Updated!");
     editId = null;
+    document.getElementById("qBtn").innerText =
+"Save Question";
   }else{
     await addDoc(collection(db,"questions"), data);
     alert("Saved!");
@@ -787,6 +824,21 @@ document.getElementById("subject").value;
 
   loadAdminData();
   loadData(); // 🔥 IMPORTANT
+  document.getElementById("category").value = "";
+document.getElementById("subject").value = "";
+document.getElementById("topic").value = "";
+document.getElementById("test").value = "";
+document.getElementById("question").value = "";
+
+document.getElementById("opt1").value = "";
+document.getElementById("opt2").value = "";
+document.getElementById("opt3").value = "";
+document.getElementById("opt4").value = "";
+
+document.getElementById("answer").value = "";
+document.getElementById("explanation").value = "";
+
+document.getElementById("imageFile").value = "";
 };
 
 // ===== SAVE THEORY =====
@@ -819,13 +871,25 @@ if(file){
     alert("Upload failed: " + err.message);
   }
 }
-  let categoryVal =
+let categoryVal =
 document.getElementById("tCategory").value;
 
 let subjectVal =
 document.getElementById("tSubject").value;
+
+let topicVal =
+document.getElementById("tTopic").value;
   let contentVal = document.getElementById("tContent").value;
 
+  if(
+  !categoryVal ||
+  !subjectVal ||
+  !topicVal ||
+  !contentVal
+){
+  alert("Please fill all required fields");
+  return;
+}
   let data = {
 
   category: categoryVal,
@@ -855,6 +919,8 @@ document.getElementById("tSubject").value;
     await updateDoc(doc(db,"theory",editTheoryId), data);
     alert("Theory Updated!");
     editTheoryId = null;
+    document.getElementById("tBtn").innerText =
+"Save Theory";
   }
   else{
     await addDoc(collection(db,"theory"), data);
@@ -863,6 +929,11 @@ document.getElementById("tSubject").value;
 
   loadAdminData();
   loadData(); // 🔥 FIX
+  document.getElementById("tCategory").value = "";
+document.getElementById("tSubject").value = "";
+document.getElementById("tTopic").value = "";
+document.getElementById("tContent").value = "";
+document.getElementById("tImage").value = "";
 };
   
 // ===== DELETE QUESTION =====
@@ -877,6 +948,7 @@ window.deleteQuestion = async function(id){
   alert("Question deleted");
 
   loadAdminData();
+  loadData();
 };
 
 // ===== DELETE THEORY =====
@@ -891,6 +963,7 @@ window.deleteTheory = async function(id){
   alert("Theory deleted");
 
   loadAdminData();
+  loadData();
 };
   // ===== FULL EDIT THEORY =====
 window.editTheoryFull = async function(id){
@@ -914,9 +987,14 @@ data.category || "";
 
 document.getElementById("tSubject").value =
 data.subject || "";
+
+document.getElementById("tTopic").value =
+data.topic || "";
   document.getElementById("tContent").value = data.content;
 
   editTheoryId = id;
+  document.getElementById("tBtn").innerText =
+"Update Theory";
 
   window.scrollTo(0,0);
 };
@@ -943,6 +1021,9 @@ data.category || "";
 
 document.getElementById("subject").value =
 data.subject || "";
+
+ document.getElementById("topic").value =
+data.topic || ""; 
   document.getElementById("test").value = data.test;
   document.getElementById("question").value = data.question;
 
@@ -955,6 +1036,8 @@ data.subject || "";
   document.getElementById("explanation").value = data.explanation;
 
   editId = id; // 🔥 important
+  document.getElementById("qBtn").innerText =
+"Update Question";
 
   window.scrollTo(0,0); // scroll to form
 };

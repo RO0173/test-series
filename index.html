@@ -45,7 +45,18 @@ input,textarea{width:100%;padding:8px;margin:5px 0;}
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, getDocs, getDoc, addDoc, doc, deleteDoc, updateDoc }  
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  getDoc,
+  addDoc,
+  doc,
+  deleteDoc,
+  updateDoc,
+  query,
+  where
+}
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } 
@@ -375,7 +386,12 @@ window.showTheory = async function(i){
 
   appDiv.innerHTML = "Loading Theory...";
 
-  let snap = await getDocs(collection(db,"theory"));
+  let tRef = query(
+  collection(db,"theory"),
+  where("topic","==",t.name)
+);
+
+let snap = await getDocs(tRef);
 
   let theory = "";
 
@@ -483,7 +499,13 @@ window.startTest = async function(i,j){
 
   appDiv.innerHTML = "Loading Test...";
 
-  let snap = await getDocs(collection(db,"questions"));
+ let qRef = query(
+  collection(db,"questions"),
+  where("topic","==",topic),
+  where("test","==",test)
+);
+
+let snap = await getDocs(qRef);
 
   questions = [];
   

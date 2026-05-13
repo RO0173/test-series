@@ -662,7 +662,12 @@ function startTimer(){
 
   timerInterval=setInterval(()=>{
     timeLeft--;
-    document.getElementById("timer").innerText=timeLeft;
+   let timer = document.getElementById("timer");
+
+if(timer){
+
+  timer.innerText = timeLeft;
+}
 
     if(timeLeft<=0){
       clearInterval(timerInterval);

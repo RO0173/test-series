@@ -420,37 +420,74 @@ window.showTheory=function(i){
 }
 
 // ===== TEST =====
-window.startTest=function(i,j){
-  questions = topics[i].tests[j].questions;
+window.startTest = async function(i,j){
+
+  let topic = topics[i].name;
+
+  let test = topics[i].tests[j].name;
+
+  appDiv.innerHTML = "Loading Test...";
+
+  let snap = await getDocs(collection(db,"questions"));
+
+  questions = [];
+
+  snap.forEach(d=>{
+
+    let q = d.data();
+
+    if(q.topic===topic && q.test===test){
+
+      questions.push(q);
+    }
+
+  });
 
   currentIndex=0;
+
   userAnswers=Array(questions.length).fill(null);
+
   visited=Array(questions.length).fill(false);
+
   marked=Array(questions.length).fill(false);
+
   timeLeft=300;
 
   appDiv.innerHTML=`
-  <h3>Time: <span id="timer">300</span>s</h3>
+
+  <h3>
+    Time:
+    <span id="timer">300</span>s
+  </h3>
 
   <div style="display:flex">
+
     <div id="palette" style="width:30%"></div>
 
     <div style="width:70%">
+
       <h3 id="q"></h3>
+
       <div id="img"></div>
+
       <div id="opt"></div>
 
       <button onclick="markReview()">Mark</button>
+
       <button onclick="prev()">Prev</button>
+
       <button onclick="next()">Next</button>
+
       <button onclick="submitTest()">Submit</button>
+
     </div>
+
   </div>`;
 
   loadQ();
+
   startTimer();
 };
-
 // ===== QUESTION =====
 function loadQ(){
   visited[currentIndex]=true;

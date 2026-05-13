@@ -369,23 +369,78 @@ gap:10px;
 };
 
 // ===== THEORY =====
-window.showTheory=function(i){
-  let t=topics[i];
+window.showTheory = async function(i){
+
+  let t = topics[i];
+
+  appDiv.innerHTML = "Loading Theory...";
+
+  let snap = await getDocs(collection(db,"theory"));
+
+  let theory = "";
+
+  snap.forEach(d=>{
+
+    let x = d.data();
+
+    if(
+      x &&
+      x.topic &&
+      x.topic===t.name
+    ){
+
+      if(x.content){
+
+        theory += x.content;
+      }
+
+      if(x.image){
+
+        theory += `
+
+        <br><br>
+
+        <img loading="lazy"
+        src="${x.image}"
+
+        style="
+        max-width:100%;
+        border-radius:10px">
+
+        <br>`;
+      }
+
+      theory += "<hr>";
+    }
+
+  });
 
   appDiv.innerHTML=`
+
   <div style="max-width:800px;margin:auto">
 
-    <h2 style="margin-bottom:10px">${t.name}</h2>
+    <h2>${t.name}</h2>
 
-    <div class="card" style="
-      line-height:1.8;
-      font-size:16px;
-      padding:20px;
+    <div class="card"
+
+    style="
+    line-height:1.8;
+    font-size:16px;
+    padding:20px;
     ">
-      ${formatTheory(t.theory) || "No theory"}
+
+      ${formatTheory(theory) || "No Theory Found"}
+
     </div>
 
-    <button class="btn" onclick="openTopic(${i})">Back</button>
+    <button class="btn"
+
+    onclick="openTopic(${i})">
+
+      Back
+
+    </button>
+
   </div>`;
 };
 

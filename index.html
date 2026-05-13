@@ -431,17 +431,45 @@ window.startTest = async function(i,j){
   let snap = await getDocs(collection(db,"questions"));
 
   questions = [];
+  
+if(!topic || !test){
 
-  snap.forEach(d=>{
+  alert("Test not found");
 
-    let q = d.data();
+  return;
+}
+ snap.forEach(d=>{
 
-    if(q.topic===topic && q.test===test){
+  let q = d.data();
 
-      questions.push(q);
-    }
+  if(
+    q &&
+    q.topic &&
+    q.test &&
+    q.topic===topic &&
+    q.test===test
+  ){
 
-  });
+    questions.push(q);
+  }
+
+});
+  if(questions.length===0){
+
+  appDiv.innerHTML = `
+
+    <h2>No Questions Found</h2>
+
+    <button class="btn"
+    onclick="showHome()">
+
+      Home
+
+    </button>
+  `;
+
+  return;
+}
 
   currentIndex=0;
 

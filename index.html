@@ -942,7 +942,6 @@ document.getElementById("topic").value;
   }
 
   loadAdminData();
-  loadData(); // 🔥 IMPORTANT
   document.getElementById("category").value = "";
 document.getElementById("subject").value = "";
 document.getElementById("topic").value = "";
@@ -1047,7 +1046,6 @@ document.getElementById("tTopic").value;
   }
 
   loadAdminData();
-  loadData(); // 🔥 FIX
   document.getElementById("tCategory").value = "";
 document.getElementById("tSubject").value = "";
 document.getElementById("tTopic").value = "";
@@ -1067,7 +1065,6 @@ window.deleteQuestion = async function(id){
   alert("Question deleted");
 
   loadAdminData();
-  loadData();
 };
 
 // ===== DELETE THEORY =====
@@ -1082,7 +1079,6 @@ window.deleteTheory = async function(id){
   alert("Theory deleted");
 
   loadAdminData();
-  loadData();
 };
   // ===== FULL EDIT THEORY =====
 window.editTheoryFull = async function(id){

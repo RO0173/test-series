@@ -71,7 +71,9 @@ const storage = getStorage(appF);
 const appDiv = document.getElementById("app");
 
 // ===== GLOBAL =====
-let topics=[],questions=[];
+let topics=[];
+let questions=[];
+let topicMap={};
 let editTheoryId = null;
 let editId = null;
 let currentIndex=0,userAnswers=[];
@@ -90,102 +92,61 @@ async function loadData(){
 
   try{
 
+    appDiv.innerHTML = "Loading Topics...";
+
     let qSnap = await getDocs(collection(db,"questions"));
-    let tSnap = await getDocs(collection(db,"theory"));
 
     let map = {};
 
-    // ===== QUESTIONS =====
     qSnap.forEach(d=>{
+
       let q = d.data();
-      q.id = d.id;
 
-      if(!q.topic || !q.test) return; // safety
+      if(!q.topic) return;
 
-     if(!map[q.topic]){
+      if(!map[q.topic]){
 
-  map[q.topic] = {
+        map[q.topic]={
 
-    name:q.topic,
+          name:q.topic,
 
-    category:q.category || "Technical",
+          category:q.category || "Technical",
 
-    subject:q.subject || "General",
+          subject:q.subject || "General",
 
-    tests:{},
-
-    theory:""
-  };
-}
-      if(!map[q.topic].tests[q.test]){
-        map[q.topic].tests[q.test] = {name:q.test,questions:[]};
+          tests:[]
+        };
       }
 
-      map[q.topic].tests[q.test].questions.push(q);
+      let exists = map[q.topic].tests.find(
+        x=>x.name===q.test
+      );
+
+      if(!exists){
+
+        map[q.topic].tests.push({
+
+          name:q.test,
+
+          count:1
+        });
+
+      }else{
+
+        exists.count++;
+      }
+
     });
 
-    // ===== THEORY =====
-    tSnap.forEach(d=>{
-      let t = d.data();
-
-      if(!t || !t.topic) return;
-
-     if(!map[t.topic]){
-
-  map[t.topic] = {
-
-    name:t.topic,
-
-    category:t.category || "Technical",
-
-    subject:t.subject || "General",
-
-    tests:{},
-
-    theory:""
-  };
-}
-
-      let block = "";
-
-      if(t.content){
-        block += t.content;
-      }
-
-      if(t.image){
-       block += `<br><br>
-<img src="${t.image}" 
-style="max-width:100%;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1)">
-<br>`;
-      }
-
-      if(block){
-        map[t.topic].theory =
-          map[t.topic].theory
-          ? map[t.topic].theory + "<hr>" + block
-          : block;
-      }
-    });
-
-    // ✅ VERY IMPORTANT (you were missing this earlier)
-   topics = Object.values(map).map(t=>({
-
-  name: t.name,
-
-  category: t.category,
-
-  subject: t.subject,
-
-  theory: t.theory,
-
-  tests: Object.values(t.tests)
-}));
+    topics = Object.values(map);
 
     showHome();
 
   }catch(err){
-    console.error("LOAD ERROR:", err);
-    appDiv.innerHTML = "Error loading data";
+
+    console.error(err);
+
+    appDiv.innerHTML = "Failed loading";
   }
 }
 
@@ -389,7 +350,7 @@ gap:10px;
   <div>
     <h3 style="margin:0">${test.name}</h3>
     <small>
-      ${test.questions.length} Questions
+     ${test.count} Questions
     </small>
   </div>
 
